@@ -1,0 +1,16 @@
+---
+title: "Layout"
+---
+
+```{mermaid}
+flowchart LR
+    subgraph S0 [Execution unit]
+        direction LR
+        A(Accumulator) --> B(Registers)
+        A --> C((Math and\nlogic unit))
+        A --> D(Barrel shifter)
+        C --> A
+        B --> C
+        D --> A
+    end
+```

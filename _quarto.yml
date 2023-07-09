@@ -1,0 +1,20 @@
+
+project:
+  type: website
+  render:
+    - "Pages/*.qmd"
+
+website:
+  title: "QCPU"
+  navbar:
+    left:
+      - Pages/index.qmd
+      - Pages/layout.qmd
+
+format:
+  html:
+    minimal: true
+    page-layout: article
+    theme:
+      light: yeti
+      dark: cyborg

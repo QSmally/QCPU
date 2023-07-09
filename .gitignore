@@ -1,0 +1,13 @@
+
+# System
+.DS_Store
+
+# File editor
+Session.vim
+*.swp
+
+# Quarto
+.quarto/
+_site/
+
+/.quarto/

@@ -1,0 +1,11 @@
+---
+title: "Instruction set"
+subtitle: "Instruction set 2CR 5-3-(8) reference"
+---
+
+::: {.column-screen-inset-left}
+| QCPU 2CR     | Short | Description              | B   | Representation |
+|--------------|-------|--------------------------|-----|----------------|
+| `0-0000-###` | MSC   | Miscellaneous operations | -   | -              |
+: {tbl-colwidths=[15,10,35,5,35]}
+:::
