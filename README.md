@@ -13,7 +13,7 @@ $ quarto preview
 
 ## Further reading
 
-* [QOS](https://github.com/QSmally/): a Unix-like operating system for QCPU 2,
+* [QOS](https://github.com/QSmally/QOS): a Unix-like operating system for QCPU 2,
 * [QCPU-Programs](https://github.com/QSmally/QCPU-Programs): a collection of generic programs and subroutines,
 * [QCPU-CLI](https://github.com/QSmally/QCPU-CLI): a compiler/assembler/emulator development suite,
 * [QCPUC-Core](https://github.com/QSmally/QCPUC-Core): stdlib of the Objective C language interface.
