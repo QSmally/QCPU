@@ -4,8 +4,34 @@ subtitle: "Instruction set 2CR 5-3-(8) reference"
 ---
 
 ::: {.column-screen-inset-left}
-| QCPU 2CR     | Short | Description              | B   | Representation |
-|--------------|-------|--------------------------|-----|----------------|
-| `0-0000-###` | MSC   | Miscellaneous operations | -   | -              |
-: {tbl-colwidths=[15,10,35,5,35]}
+| QCPU 2CR     | Short   | Description                       | B | Representation |
+|--------------+---------+-----------------------------------+---+----------------|
+| `0-0000-###` | **MSC** | Miscellaneous operations          | - | -              |
+| `0-0001-###` | **PSH** | Push register to stack            | 1 | -              |
+| `0-0010-###` | **SPM** | Stack pointer mutate              | 1 | -              |
+| `0-0011-###` | **IMM** | Load immediate into register      | 2 | -              |
+| `0-0100-###` | **XCH** | Exchange register and accumulator | 1 | -              |
+| `0-0101-###` | **AST** | Accumulator store                 | 1 | -              |
+| `0-0110-###` | **RST** | Register store                    | 1 | -              |
+| `0-0111-###` | **INC** | Increment                         | 1 | -              |
+| `0-1000-###` | **DEC** | Decrement                         | 1 | -              |
+| `0-1001-###` | **NEG** | Negate                            | 1 | -              |
+| `0-1010-###` | **RSH** | Right shift                       | 1 | -              |
+| `0-1011-###` | **ADD** | Addition                          | 1 | -              |
+| `0-1100-###` | **SUB** | Subtraction                       | 1 | -              |
+| `0-1101-###` | **IOR** | Bitwise incl. OR (insert bits)    | 1 | -              |
+| `0-1110-###` | **AND** | Bitwise AND (mask/remove bits)    | 1 | -              |
+| `0-1111-###` | **XOR** | Bitwise excl. OR (toggle bits)    | 1 | -              |
+| `1-0000-###` | **BSL** | Barrel shift left                 | 1 | -              |
+| `1-0001-###` | **BPL** | Barrel shift left (pointer)       | 1 | -              |
+| `1-0010-###` | **BSR** | Barrel shift right                | 1 | -              |
+| `1-0011-###` | **BPR** | Barrel shift right (pointer)      | 1 | -              |
+| `1-01-#####` | **ENT** | Enter kernel mode                 | 1 | -              |
+| `1-1000-###` | **DMA** | Privileged direct memory access   | 1 | -              |
+| `1-1001-###` | **PRT** | Privileged port instruction       | 2 | -              |
+| `1-1010-###` | **BRH** | Conditionally jump to address     | 2 | -              |
+| `1-1011#-##` | **JMP** | Jump to address                   | 2 | -              |
+| `1-110##-##` | **MST** | Memory store                      | 2 | -              |
+| `1-111##-##` | **MLD** | Memory load                       | 2 | -              |
+: {tbl-colwidths=[10,10,30,5,45]}
 :::
