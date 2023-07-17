@@ -11,6 +11,13 @@ A rendered version of the documentation can be previewed through the Quarto CLI.
 $ quarto preview
 ```
 
+## Hosted render
+
+Things to implement:
+
+* Spreadsheet functionality for the instruction set;
+* Docker implementation with routing between spreadsheet/RMarkdown services.
+
 ## Further reading
 
 * [QOS](https://github.com/QSmally/QOS): a Unix-like operating system for QCPU 2,
