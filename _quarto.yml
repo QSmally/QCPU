@@ -2,14 +2,15 @@
 project:
   type: website
   render:
-    - "Pages/*.qmd"
+    - "pages/*.qmd"
+css: publish/style.css
 
 website:
   title: "QCPU"
   navbar:
     left:
-      - Pages/index.qmd
-      - Pages/layout.qmd
+      - pages/index.qmd
+      - pages/layout.qmd
 
 format:
   html:
