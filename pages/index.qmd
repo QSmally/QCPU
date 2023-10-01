@@ -35,3 +35,7 @@ subtitle: "Instruction set 2CR 5-3-(8) reference"
 | `1-111##-##` | **MLD** | Memory load                       | 2 | `acc = *('reg' + imm)`                 |
 : {tbl-colwidths=[15,10,30,5,40]}
 :::
+
+::: {.note}
+TODO: Remove PRT in favour of memory mapped using virtual
+:::

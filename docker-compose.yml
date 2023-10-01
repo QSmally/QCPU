@@ -1,0 +1,12 @@
+
+version: "3"
+
+services:
+  qcpu-documentation:
+    restart: always
+    build: .
+    container_name: qcpu-documentation
+    volumes:
+      - "./:/Content"
+    ports:
+      - 8000:80
