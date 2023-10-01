@@ -1,6 +1,6 @@
 ---
 title: "Instruction set"
-subtitle: "Instruction set 2CR 5-3-(8) reference"
+subtitle: "QCPU 2CR 5-3-(8) reference"
 ---
 
 ::: {.column-screen-inset-left}
@@ -33,7 +33,7 @@ subtitle: "Instruction set 2CR 5-3-(8) reference"
 | `1-1011#-##` | **JMP** | Jump to address                   | 2 | `push(pc + 1)?, pc = 'reg' + imm`      |
 | `1-110##-##` | **MST** | Memory store                      | 2 | `*('reg' + imm) = acc`                 |
 | `1-111##-##` | **MLD** | Memory load                       | 2 | `acc = *('reg' + imm)`                 |
-: {tbl-colwidths=[15,10,30,5,40]}
+: {tbl-colwidths=[10,10,35,5,40]}
 :::
 
 ::: {.note}
