@@ -1,0 +1,8 @@
+---
+title: "Memory architecture"
+subtitle: "QCPU's 16 bit virtual memory, per-partition 24 bit physical memory and addressing modes."
+date: 2023-10-8
+categories: [memory]
+---
+
+...

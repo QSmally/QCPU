@@ -3,19 +3,27 @@ project:
   type: website
   render:
     - "pages/*.qmd"
-css: publish/style.css
+    - "guide/*.qmd"
 
 website:
   title: "QCPU"
+  search: true
   navbar:
     left:
       - pages/index.qmd
       - pages/layout.qmd
+    right:
+      - text: Guide
+        href: guide/index.qmd
+      - icon: github
+        href: https://github.com/QSmally/QCPU
 
 format:
   html:
+    code-copy: true
     minimal: true
     page-layout: article
     theme:
       light: yeti
       dark: cyborg
+    css: publish/style.css
