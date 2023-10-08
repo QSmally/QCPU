@@ -8,3 +8,7 @@ thead, tbody, tfoot, tr, td, th {
     border-bottom-color: #222 !important;
     border-top-color: #222 !important;
 }
+
+code {
+    background-color: inherit !important;
+}

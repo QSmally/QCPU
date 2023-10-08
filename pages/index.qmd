@@ -27,82 +27,10 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `1-0010-###` | **BSR** | Barrel shift right                | 1 | `acc = acc >> 'amt'`                  |
 | `1-0011-###` | **BPR** | Barrel shift right (pointer)      | 1 | `acc = acc >> 'reg'`                  |
 | `1-01-#####` | **ENT** | Enter kernel mode                 | 1 | `push('sc', acc, pc + 1), pc = const` |
-| `1-1000-###` | **SPM** | Stack pointer mutate              | 1 | `spt = spt + signed 'bytes'`          |
+| `1-1000-###` | **MSP** | Mutate the stack pointer          | 1 | `spt = spt + signed 'bytes'`          |
 | `1-1001-###` | **BRH** | Conditionally jump to address     | 2 | `pc = imm on [delayed] 'condition'`   |
 | `1-101##-##` | **JMP** | Jump to address                   | 2 | `push(pc + 1)?, pc = 'reg' + imm`     |
 | `1-110##-##` | **MST** | Memory store                      | 2 | `*('reg' + imm) = acc`                |
 | `1-111##-##` | **MLD** | Memory load                       | 2 | `acc = *('reg' + imm)`                |
 : {tbl-colwidths=[10,10,35,5,40]}
 :::
-
-## Scratch-pad
-
-### Memory modes
-
-Indirect/long pointer experimentation, with 16 bit virtual memory
-
-```{.asm}
-.address:   ; in executable data section (process data section???)
-    0x00    ; either 2 or 3 bytes
-    0x00    ; 'physical_size_bytes' in assembler settings
-
-instr <mode:long> dyn, .address
-instr <mode> dyn, static
-```
-
-- `mode:2` :: control bits
-- `dyn:2` :: value of register
-- `immediate:8` :: value/address (interpretation depends on mode)
-
-```{.asm}
-@define preoffset 0
-@define static_offset 0
-
-mld <mode:frame> dyn, static_offset         ; frame + dyn + static
-mld <mode:long> dyn, .address + prestatic   ; address + dyn (+ prestatic, missing poststatic)
-```
-
-| mode | read                               | write                                     |
-|------+------------------------------------+-------------------------------------------|
-| `00` | short + register (is this used???) | short + register                          |
-| `01` | frame pointer                      | frame pointer                             |
-| `10` | long + register                    | long + register                           |
-| `11` | long + register preoffset          | long (.frame???) + register postincrement |
-
-- `*imm + reg` :: postoffset dynamic reg (default, always on `jmp`)
-  - useful for: ...
-  - problem: no static offset on `*imm`
-- `*(imm + reg)` :: preoffset dynamic reg
-  - useful for: dynamic lookup
-  - problem: ...
-
-### Jumps
-
-```{.asm}
-jmp <mode> dyn, +24                  ; relative jump +24
-jmp <mode:long> dyn, .address        ; absolute jump to ptr at .address
-jmp <mode:call,long> dyn, .address   ; absolute call
-```
-
-| mode | description                                   |
-|------+-----------------------------------------------|
-| `00` | short (relative), jump (mode used for branch) |
-| `01` | short (relative), call                        |
-| `10` | long (absolute), jump                         |
-| `11` | long (absolute), call                         |
-
-### Sections
-
-virtual memory:
-
-- Process mutable data (pid, uid, env, fpt, spt) (???)
-- Executable globals (mutable, copy-on-write)
-- Text section (non-mutable)
-- Stack
-- Miscellaneous heap
-
-register map:
-
-- 0 :: zero
-- abcd :: general purpose (1-4, context)
-- xyz :: subroutine args (5-7)

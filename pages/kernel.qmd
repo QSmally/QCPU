@@ -1,0 +1,48 @@
+---
+title: "Kernel"
+---
+
+## Scratch-pad
+
+### Modules
+
+- fs logic
+    - permissions
+- drivers
+
+### Filesystem
+
+partition format:
+
+- executable/bootable flag
+- root inode directory content
+
+16 bit virtual/physical address, 8 bit partition id, 24 bit total physically
+
+partition procedure:
+
+- executable boot partition, does system initialisation
+- mounts root at /, root non-executable
+- mounts boot at /boot
+- mounts data at /home
+- others...
+
+file format:
+
+- file type
+  - content
+  - directory
+  - symlink
+  - fs mount -> I/O
+  - I/O
+- name
+
+### Dynamic libs
+
+memory map to readonly lib text
+
+### Interrupts
+
+- syscall
+- watchdog
+- I/O -> drivers

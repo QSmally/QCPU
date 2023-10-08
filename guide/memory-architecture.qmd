@@ -1,8 +1,82 @@
 ---
 title: "Memory architecture"
-subtitle: "QCPU's 16 bit virtual memory, per-partition 24 bit physical memory and addressing modes."
+subtitle: "A look into QCPU's memory system"
+description: "QCPU's 16 bit virtual memory, 24 bit partioned physical memory and addressing modes."
 date: 2023-10-8
 categories: [memory]
 ---
 
+<!--
+https://en.wikipedia.org/wiki/Intel_8080
+https://en.wikipedia.org/wiki/MOS_Technology_6502
+https://en.wikipedia.org/wiki/Motorola_6800
+https://en.wikipedia.org/wiki/Zilog_Z80
+-->
+
 ...
+
+virtual memory:
+
+- Process mutable data (pid, uid, env, stack/frame/insertion pointers, mmap)
+- Executable globals (mutable, copy-on-write)
+- Text section (non-mutable)
+- Stack
+- Miscellaneous heap
+
+## Memory access
+
+A memory instruction (which is either `mst` or `mld`) can be composed like the
+following:
+
+```{.asm}
+instr <mode:2> <directive:2>, <static offset:8>
+```
+
+An access mode are two status bits which modify the execution of the memory
+access.
+
+- Indirect access: performs a load for the absolute pointer before the access;
+- Offset: whether to add an 8 bit offset to the (last) access.
+
+For the directive, it's the known base pointer for the first memory access:
+
+| directive | description                       |
+|-----------+-----------------------------------|
+| `00`      | index registers (x/y)             |
+| `01`      | globals, included with executable |
+| `10`      | stack base position               |
+| `11`      | current stack frame position      |
+
+::: {.note}
+Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
+
+Note: unknown on using accumulator as dynamic offset register (for store)
+:::
+
+## Scenarios
+
+```{.asm}
+mld  index,   offset   ; load absolute
+mld  index+o, offset   ; load absolute with dynamic offset
+mld  globl,   offset   ; load from global text
+mld  globl+o, offset   ;
+mld  stack,   offset   ; load from absolute stack position
+mld  stack+o, offset   ;
+mld  frame,   offset   ; load from current stack frame position
+mld  frame+o, offset   ;
+```
+
+## Reference indirection
+
+```{.asm}
+mldl frame,   offset   ; load from pointer located in stack
+mldl frame+o, offset   ; load from dynamically offsetted pointer in stack
+
+equivalent_to:         ; adds 7 bytes
+    mld  frame,   offset
+    rst rx
+    mld  frame,   offset+1
+    rst ry
+    ast ra             ; dynamic offset
+    mld  index+o, offset
+```

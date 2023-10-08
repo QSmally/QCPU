@@ -1,0 +1,32 @@
+---
+title: "Jumps and branches"
+subtitle: ""
+description: ""
+date: 2023-10-14
+categories: [memory, addressing]
+---
+
+...
+
+- relative jump/... (also used for branch)
+- absolute jump/call, two step
+
+```{.asm}
+jmp <mode> dyn, +24                  ; relative jump +24
+jmp <mode:long> dyn, .address        ; absolute jump to ptr at global .address
+jmp <mode:call,long> dyn, .address   ; absolute call
+```
+
+::: {.note}
+`.address`: in global section, missing:
+
+- stack section
+- stack frame
+:::
+
+| mode | description                                   |
+|------+-----------------------------------------------|
+| `00` | short (relative), jump (mode used for branch) |
+| `01` | short (relative), call (maybe not used?)      |
+| `10` | long (absolute), jump (get directive)         |
+| `11` | long (absolute), call                         |

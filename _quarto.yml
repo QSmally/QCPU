@@ -12,6 +12,7 @@ website:
     left:
       - pages/index.qmd
       - pages/layout.qmd
+      - pages/kernel.qmd
     right:
       - text: Guide
         href: guide/index.qmd
