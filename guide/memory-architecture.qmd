@@ -1,7 +1,7 @@
 ---
 title: "Memory architecture"
 subtitle: "A look into QCPU's memory system"
-description: "QCPU's 16 bit virtual memory, 24 bit partioned physical memory and addressing modes."
+description: "QCPU's 16 bit virtual memory, 24 bit physical memory and addressing modes."
 date: 2023-10-8
 categories: [memory]
 ---
@@ -14,14 +14,6 @@ https://en.wikipedia.org/wiki/Zilog_Z80
 -->
 
 ...
-
-virtual memory:
-
-- Process mutable data (pid, uid, env, stack/frame/insertion pointers, mmap)
-- Executable globals (mutable, copy-on-write)
-- Text section (non-mutable)
-- Stack
-- Miscellaneous heap
 
 ## Memory access
 
@@ -51,6 +43,8 @@ For the directive, it's the known base pointer for the first memory access:
 Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
 
 Note: unknown on using accumulator as dynamic offset register (for store)
+
+Note: add memory-load-to-index instruction to load two bytes into x/y
 :::
 
 ## Scenarios

@@ -1,0 +1,47 @@
+---
+title: "Virtual memory"
+subtitle: "Physical memory mapping in userland"
+description: "Allocators in userland in order to fully manage a process' virtual memory."
+date: 2023-10-20
+categories: [memory, userland]
+---
+
+Memory is addressed with 16 bits. A segment is the upper byte of that address,
+being 256 bytes.
+
+Physical memory is mapped to the userspace's virtual memory
+by writing to the first four segments of the virtual memory. In turn, the MMU
+reads from that section in order to put the link between virtual (16 bit) and
+physical (24 bit) memory.
+
+## Memory layout
+
+In between the square brackets is the amount of segments necessary for that
+section.
+
+- Memory map `[3]`
+- Process data `[1]`
+    - process/thread id
+    - stack base/frame/insertion ptrs
+- Globals (mutable) `[1]`
+- Text (+ (dynamic) libaries) `[1+]`
+- Stack `[1+]`
+    - env, args, exit ptrs
+- Heap `[rest]`
+
+## Mapping model
+
+QCPU's memory mapping is handled by the userland. It makes it possible to have
+allocators in userspace that are in charge of managing the userspace memory,
+rather than letting the kernel handle it. A kernel returns the device id and
+segment address of physical memory.
+
+Having different allocators in userspace can increase performance by minimising
+system calls.
+
+0. Flags
+    - Non-overwritable
+    - Readonly
+    - Copy-on-write
+2. Device id
+3. Segment address
