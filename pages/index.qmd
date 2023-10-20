@@ -4,33 +4,43 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 ---
 
 ::: {.column-screen-inset-left}
-| QCPU 2CR     | Short   | Description                       | B | Representation                        |
-|--------------+---------+-----------------------------------+---+---------------------------------------|
-| `0-0000-###` | **MSC** | Miscellaneous operations          | - | -                                     |
-| `0-0001-###` |         |                                   |   |                                       |
-| `0-0010-###` |         |                                   |   |                                       |
-| `0-0011-###` | **IMM** | Load immediate into register      | 2 | `'reg' = imm`                         |
-| `0-0100-###` | **XCH** | Exchange register and accumulator | 1 | `'reg' = acc, acc = 'reg'`            |
-| `0-0101-###` | **AST** | Accumulator store                 | 1 | `acc = 'reg'`                         |
-| `0-0110-###` | **RST** | Register store                    | 1 | `'reg' = acc`                         |
-| `0-0111-###` | **INC** | Increment                         | 1 | `'reg' = 'reg' + 1`                   |
-| `0-1000-###` | **DEC** | Decrement                         | 1 | `'reg' = 'reg' - 1`                   |
-| `0-1001-###` | **NEG** | Negate                            | 1 | `'reg' = -'reg'`                      |
-| `0-1010-###` | **RSH** | Right shift                       | 1 | `'reg' = 'reg' >> 1`                  |
-| `0-1011-###` | **ADD** | Addition                          | 1 | `acc = acc + 'reg'`                   |
-| `0-1100-###` | **SUB** | Subtraction                       | 1 | `acc = acc - 'reg'`                   |
-| `0-1101-###` | **IOR** | Bitwise incl. OR (insert bits)    | 1 | `acc = acc IOR 'reg'`                 |
-| `0-1110-###` | **AND** | Bitwise AND (mask/remove bits)    | 1 | `acc = acc AND 'reg'`                 |
-| `0-1111-###` | **XOR** | Bitwise excl. OR (toggle bits)    | 1 | `acc = acc XOR 'reg'`                 |
-| `1-0000-###` | **BSL** | Barrel shift left                 | 1 | `acc = acc << 'amt'`                  |
-| `1-0001-###` | **BPL** | Barrel shift left (pointer)       | 1 | `acc = acc << 'reg'`                  |
-| `1-0010-###` | **BSR** | Barrel shift right                | 1 | `acc = acc >> 'amt'`                  |
-| `1-0011-###` | **BPR** | Barrel shift right (pointer)      | 1 | `acc = acc >> 'reg'`                  |
-| `1-01-#####` | **ENT** | Enter kernel mode                 | 1 | `push('sc', acc, pc + 1), pc = const` |
-| `1-1000-###` | **MSP** | Mutate the stack pointer          | 1 | `spt = spt + signed 'bytes'`          |
-| `1-1001-###` | **BRH** | Conditionally jump to address     | 2 | `pc = imm on [delayed] 'condition'`   |
-| `1-101##-##` | **JMP** | Jump to address                   | 2 | `push(pc + 1)?, pc = 'reg' + imm`     |
-| `1-110##-##` | **MST** | Memory store                      | 2 | `*('reg' + imm) = acc`                |
-| `1-111##-##` | **MLD** | Memory load                       | 2 | `acc = *('reg' + imm)`                |
+| QCPU 2CR     | Short    | Description                       | B | Representation                        |
+|--------------+----------+-----------------------------------+---+---------------------------------------|
+| `0-0000-000` |          |                                   |   |                                       |
+| `0-0000-001` |          |                                   |   |                                       |
+| `0-0000-010` |          |                                   |   |                                       |
+| `0-0000-011` |          |                                   |   |                                       |
+| `0-0000-100` |          |                                   |   |                                       |
+| `0-0000-101` |          |                                   |   |                                       |
+| `0-0000-110` |          |                                   |   |                                       |
+| `0-0000-111` |          |                                   |   |                                       |
+| `0-0001-###` |          |                                   |   |                                       |
+| `0-0010-###` |          |                                   |   |                                       |
+| `0-0011-###` | **imm**  | Load immediate into register      | 2 | `'reg' = imm`                         |
+| `0-0100-###` | **xch**  | Exchange register and accumulator | 1 | `'reg' = acc, acc = 'reg'`            |
+| `0-0101-###` | **ast**  | Accumulator store                 | 1 | `acc = 'reg'`                         |
+| `0-0110-###` | **rst**  | Register store                    | 1 | `'reg' = acc`                         |
+| `0-0111-###` | **inc**  | Increment                         | 1 | `'reg' = 'reg' + 1`                   |
+| `0-1000-###` | **dec**  | Decrement                         | 1 | `'reg' = 'reg' - 1`                   |
+| `0-1001-###` | **neg**  | Negate                            | 1 | `'reg' = -'reg'`                      |
+| `0-1010-###` | **rsh**  | Right shift                       | 1 | `'reg' = 'reg' >> 1`                  |
+| `0-1011-###` | **add**  | Addition                          | 1 | `acc = acc + 'reg'`                   |
+| `0-1100-###` | **sub**  | Subtraction                       | 1 | `acc = acc - 'reg'`                   |
+| `0-1101-###` | **ior**  | Bitwise incl. OR (insert bits)    | 1 | `acc = acc IOR 'reg'`                 |
+| `0-1110-###` | **and**  | Bitwise AND (mask/remove bits)    | 1 | `acc = acc AND 'reg'`                 |
+| `0-1111-###` | **xor**  | Bitwise excl. OR (toggle bits)    | 1 | `acc = acc XOR 'reg'`                 |
+| `1-0000-###` | **bsl**  | Barrel shift left                 | 1 | `acc = acc << 'amt'`                  |
+| `1-0001-###` | **bsll** | Barrel shift left (pointer)       | 1 | `acc = acc << 'reg'`                  |
+| `1-0010-###` | **bsr**  | Barrel shift right                | 1 | `acc = acc >> 'amt'`                  |
+| `1-0011-###` | **bsrl** | Barrel shift right (pointer)      | 1 | `acc = acc >> 'reg'`                  |
+| `1-01-#####` | **sysc** | System call interrupt             | 1 | `push('sc', acc, pc + 1), pc = const` |
+| `1-1000-###` | **msp**  | Mutate the stack pointer          | 1 | `spt = spt +  'bytes'`                |
+| `1-1001-###` | **brh**  | Conditionally jump to address     | 2 | `pc = imm on [delayed] 'condition'`   |
+| `1-1010#-##` | **jmp**  | Jump to address                   | 2 | `pc = 'reg' + imm`                    |
+| `1-1011#-##` | **jmpc** | Jump to address (and link)        | 2 | `push(pc, fb), pc = 'reg' + imm`      |
+| `1-1100#-##` | **mst**  | Memory store                      | 2 | `*('reg' + imm) = acc`                |
+| `1-1101#-##` | **mstl** | Memory store (indirect)           | 2 | `*('reg' + imm) = acc`                |
+| `1-1110#-##` | **mld**  | Memory load                       | 2 | `acc = *('reg' + imm)`                |
+| `1-1111#-##` | **mldl** | Memory load (indirect)            | 2 | `acc = *('reg' + imm)`                |
 : {tbl-colwidths=[10,10,35,5,40]}
 :::

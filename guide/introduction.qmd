@@ -9,12 +9,12 @@ categories: []
 
 ## Register map
 
-- 0 :: zero
-- k :: accumulator
-- abcd :: general purpose (1-4, context)
-- xyz :: subroutine args (5-7)
+- zero: `zr` (0)
+- accumulator: `ir` (intermediate register)
+- general purpose: `ra`, `rb`, `rc`, `rd` (1-4)
+- subroutine args: `rx`, `ry`, `rz` (5-7)
 
-...
+### Memory
 
-- offset :: k
-- index :: x/y
+Certain memory operations use registers `rx` and `ry` as the 16 bit index
+register, with `rz` being the dynamic offset register.

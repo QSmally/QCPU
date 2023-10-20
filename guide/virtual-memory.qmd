@@ -25,19 +25,24 @@ section.
     - stack base/frame/insertion ptrs
 - Globals (mutable) `[1]`
 - Text (+ (dynamic) libaries) `[1+]`
-- Stack `[1+]`
+- Stack `[1+ ...]`
     - env, args, exit ptrs
-- Heap `[rest]`
+- Heap `[...rest]`
+
+::: {.note}
+Note: memory map for heap should sync between threads of processes
+:::
 
 ## Mapping model
 
 QCPU's memory mapping is handled by the userland. It makes it possible to have
 allocators in userspace that are in charge of managing the userspace memory,
-rather than letting the kernel handle it. A kernel returns the device id and
-segment address of physical memory.
+rather than letting the kernel handle it. Though this makes it very, very easy
+to hack around so it should be used with care.
 
-Having different allocators in userspace can increase performance by minimising
-system calls.
+A kernel returns the device id and segment address of physical memory. Having
+different allocators in userspace can increase performance by minimising system
+calls.
 
 0. Flags
     - Non-overwritable
@@ -45,3 +50,8 @@ system calls.
     - Copy-on-write
 2. Device id
 3. Segment address
+
+::: {.note}
+Note: figure out permission checks (flags, physical) without storing them in
+userspace
+:::
