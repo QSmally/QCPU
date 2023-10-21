@@ -7,14 +7,56 @@ categories: [memory, userland]
 ---
 
 Memory is addressed with 16 bits. A segment is the upper byte of that address,
-being 256 bytes.
+being 256 bytes. Physical memory is mapped to the userspace's virtual memory.
+In turn, the MMU reads from the map in order to put the link between virtual
+(16 bit) and physical (24 bit) memory.
 
-Physical memory is mapped to the userspace's virtual memory
-by writing to the first four segments of the virtual memory. In turn, the MMU
-reads from that section in order to put the link between virtual (16 bit) and
-physical (24 bit) memory.
+## Address space
+
+QCPU has a single virtual space, divided into multiple address spaces. Each
+process has its own userland, whilst a kernel is always loaded on the same
+address offset regardless of which process is currently being executed.
+
+```
+                 64 KiB
+                (16 bit)
+0x0000                   0xC0000  0xFFFF
+   |------------------------|--------|
+   | userland               | kernel |
+     48 KiB                   16 KiB
+```
+
+A kernel can be loaded from address `0xC000` (which may be customisable). QCPU
+will signal a segmentation fault when processes residing in userspace attempt to
+access the kernel address space when not in a privileged CPU mode. Likewise,
+trying to perform write instructions to segments with the `unmapped` or
+`readonly` flags will also signal a segfault.
+
+### Kernel space
+
+Kernel space is divided into two parts. Text and global mutable data of the
+kernel is loaded in the first part. It primarily has all fixed kernel structures
+ready to be used. It also includes the kernel memory map, which maps the second
+part of the kernel space to physical memory[^1]. It allows the kernel to
+generically modify data whilst still being in the virtual context.
+
+System calls (like any other interrupt) put the CPU into kernel mode and jump
+to designated parts of kernel space, which doesn't trigger a segfault:
+
+```{.asm}
+mldx sfb, 3      ; load address of string from stack
+imm  rz,  0x00   ; mask 0
+sysc @open
+```
+
+Putting the CPU out of kernel mode is done by jumping out of the kernel section.
+
+[^1]: Kernel details depends on implementation.
 
 ## Memory layout
+
+For the userland, memory is divided into multiple sections per the process
+memory map.
 
 In between the square brackets is the amount of segments necessary for that
 section.
@@ -35,14 +77,14 @@ Note: memory map for heap should sync between threads of processes
 
 ## Mapping model
 
-QCPU's memory mapping is handled by the userland. It makes it possible to have
-allocators in userspace that are in charge of managing the userspace memory,
-rather than letting the kernel handle it. Though this makes it very, very easy
-to hack around so it should be used with care.
+A kernel can only map segments of 256 bytes to a process' virtual memory. In
+order to handle multiple smaller allocations efficiently, like 24 byte arrays
+and a couple of small objects, an allocator layer in userland may be used. A
+system call is only done when more physical space is necessary for the
+allocation rather than with every single allocation.
 
-A kernel returns the device id and segment address of physical memory. Having
-different allocators in userspace can increase performance by minimising system
-calls.
+The MMU holds a table of virtual segments and their physical address for the
+userspace. It also holds the flags belonging to the segment.
 
 0. Flags
     - Non-overwritable
@@ -50,8 +92,3 @@ calls.
     - Copy-on-write
 2. Device id
 3. Segment address
-
-::: {.note}
-Note: figure out permission checks (flags, physical) without storing them in
-userspace
-:::
