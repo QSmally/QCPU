@@ -12,17 +12,10 @@ categories: [memory, addressing]
 - absolute jump/call, two step
 
 ```{.asm}
-jmp <mode> dyn, +24                  ; relative jump +24
-jmp <mode:long> dyn, .address        ; absolute jump to ptr at global .address
-jmp <mode:call,long> dyn, .address   ; absolute call
+jmp <mode> sel, +24                  ; relative jump +24
+jmp <mode:long> sel, .address        ; absolute jump to ptr at global .address
+jmp <mode:call,long> sel, .address   ; absolute call
 ```
-
-::: {.note}
-`.address`: in global section, missing:
-
-- stack section
-- stack frame
-:::
 
 | mode | description                                   |
 |------+-----------------------------------------------|

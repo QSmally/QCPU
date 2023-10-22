@@ -34,13 +34,13 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `1-0010-###` | **bsr**  | Barrel shift right                | 1 | `acc = acc >> 'amt'`                  |
 | `1-0011-###` | **bsrl** | Barrel shift right (pointer)      | 1 | `acc = acc >> 'reg'`                  |
 | `1-01-#####` | **sysc** | System call interrupt             | 1 | `push('sc', acc, pc + 1), pc = const` |
-| `1-1000-###` | **msp**  | Mutate the stack pointer          | 1 | `spt = spt +  'bytes'`                |
-| `1-1001-###` | **brh**  | Conditionally jump to address     | 2 | `pc = imm on [delayed] 'condition'`   |
-| `1-1010#-##` | **jmp**  | Jump to address                   | 2 | `pc = 'reg' + imm`                    |
-| `1-1011#-##` | **jmpc** | Jump to address (and link)        | 2 | `push(pc, fb), pc = 'reg' + imm`      |
-| `1-1100#-##` | **mst**  | Memory store                      | 2 | `*('reg' + imm) = acc`                |
-| `1-1101#-##` | **mstl** | Memory store (indirect)           | 2 | `*('reg' + imm) = acc`                |
-| `1-1110#-##` | **mld**  | Memory load                       | 2 | `acc = *('reg' + imm)`                |
-| `1-1111#-##` | **mldl** | Memory load (indirect)            | 2 | `acc = *('reg' + imm)`                |
+| `1-1000-###` | **msp**  | Mutate the stack pointer          | 1 | `spt = spt + 'bytes'`                 |
+| `1-1001-###` | **brh**  | Conditionally jump to address     | 2 | `pc = + imm on [delayed] 'condition'` |
+| `1-1010#-##` | **jmp**  | Jump to address                   | 2 | `pc = ('reg' or pc) + imm`            |
+| `1-1011#-##` | **jmpl** | Jump to address (and link)        | 2 | `push(pc, fb), pc = 'reg' + imm`      |
+| `1-1100#-##` | **mst**  | Memory store                      | 2 | `*('sel' + imm) = acc`                |
+| `1-1101#-##` | **mstw** | Memory store (word)               | 2 | `*('sel' + imm) = rx, ry`             |
+| `1-1110#-##` | **mld**  | Memory load                       | 2 | `acc = *('sel' + imm)`                |
+| `1-1111#-##` | **mldw** | Memory load (word)                | 2 | `rx, ry = *('sel' + imm)`             |
 : {tbl-colwidths=[10,10,35,5,40]}
 :::
