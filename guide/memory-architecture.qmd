@@ -21,56 +21,54 @@ A memory instruction (which is either `mst` or `mld`) can be composed like the
 following:
 
 ```{.asm}
-instr <mode:2> <directive:2>, <static offset:8>
+instr <mode:2> <selector:2>, <static offset:8>
 ```
 
 An access mode are two status bits which modify the execution of the memory
 access.
 
-- Indirect access: performs a load for the absolute pointer before the access;
+- Word access: performs an access on two bytes by using the index register (`rx`, `ry`);
 - Offset: whether to add an 8 bit offset to the (last) access.
 
-For the directive, it's the known base pointer for the first memory access:
+For the selector, it's the known base pointer for the first memory access:
 
-| directive | description                       |
-|-----------+-----------------------------------|
-| `00`      | index registers (x/y)             |
-| `01`      | globals, included with executable |
-| `10`      | stack base position               |
-| `11`      | current stack frame position      |
+| selector | short | description                       |
+|----------+-------+-----------------------------------|
+| `00`     | `sid` | index registers (x/y)             |
+| `01`     | `sgl` | globals, included with executable |
+| `10`     | `ssb` | stack base position               |
+| `11`     | `sfb` | current stack frame position      |
 
 ::: {.note}
 Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
-
-Note: unknown on using accumulator as dynamic offset register (for store)
-
-Note: add memory-load-to-index instruction to load two bytes into x/y
 :::
 
 ## Scenarios
 
 ```{.asm}
-mld  index,   offset   ; load absolute
-mld  index+o, offset   ; load absolute with dynamic offset
-mld  globl,   offset   ; load from global text
-mld  globl+o, offset   ;
-mld  stack,   offset   ; load from absolute stack position
-mld  stack+o, offset   ;
-mld  frame,   offset   ; load from current stack frame position
-mld  frame+o, offset   ;
+mld  sid,   offset   ; load absolute
+mld  sid+o, offset   ; load absolute with dynamic offset
+mld  sgl,   offset   ; load from global text
+mld  sgl+o, offset   ;
+mld  ssb,   offset   ; load from absolute stack position
+mld  ssb+o, offset   ;
+mld  sfb,   offset   ; load from current stack frame position
+mld  sfb+o, offset   ;
 ```
 
 ## Reference indirection
 
 ```{.asm}
-mldl frame,   offset   ; load from pointer located in stack
-mldl frame+o, offset   ; load from dynamically offsetted pointer in stack
+mldw sfb,   offset   ; load first address
 
-equivalent_to:         ; adds 7 bytes
-    mld  frame,   offset
+mld  sid,   offset   ; load from pointer located in stack
+mld  sid+o, offset   ; load from dynamically offsetted pointer in stack
+
+equivalent_to:       ; adds 5 bytes
+    mld  sfb,   offset
     rst rx
-    mld  frame,   offset+1
+    mld  sfb,   offset+1
     rst ry
-    ast ra             ; dynamic offset
-    mld  index+o, offset
+    ast ra           ; dynamic offset
+    mld  sid+o, offset
 ```

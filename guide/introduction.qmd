@@ -5,16 +5,33 @@ date: 2023-10-5
 categories: []
 ---
 
-...
+QCPU's assembler will automatically choose the memory mode of the instruction
+depending on the expression syntax and whichever is more efficient and possible.
+For example, a jump will be done in relative mode unless its out of the range of
+`-128 < offset <= 128`.
 
 ## Register map
 
-- zero: `zr` (0)
-- accumulator: `ir` (intermediate register)
-- general purpose: `ra`, `rb`, `rc`, `rd` (1-4)
-- subroutine args: `rx`, `ry`, `rz` (5-7)
+- Accumulator: `ra`
+- General purpose: `rb`, `rc`, `rd`, `re`, `rf` (0-4)
+- Subroutine args: `rx`, `ry`, `rz` (5-7)
 
-### Memory
+::: {.note}
+Note: verify use of zero register
+
+An accumulator clear could be `AST r; SUB r;`
+:::
+
+### Index register
 
 Certain memory operations use registers `rx` and `ry` as the 16 bit index
 register, with `rz` being the dynamic offset register.
+
+### Selectors
+
+Memory instructions can use a known base address.
+
+0. Index register
+1. Executable globals
+2. Stack base
+3. Stack frame
