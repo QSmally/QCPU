@@ -12,3 +12,10 @@ thead, tbody, tfoot, tr, td, th {
 code {
     background-color: inherit !important;
 }
+
+.note {
+    background-color: rgba(255, 186, 0, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #ffba00;
+}
