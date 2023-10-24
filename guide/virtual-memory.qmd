@@ -44,11 +44,11 @@ generically modify data whilst still being in the virtual context:
 - 'Variable' kernel space.
 
 ```
-                     16 KiB
-         0xC000      0xD000      0xFFFF
-            |-----------|-----------|
-| userland  | kfixed    | kvariable |
-              12 KiB      4 KiB
+                      16 KiB
+          0xC000      0xD000      0xFFFF
+             |-----------|-----------|
+ | userland  | kfixed    | kvariable |
+               12 KiB      4 KiB
 ```
 
 System calls (like any other interrupt) put the CPU into kernel mode and jump
@@ -64,7 +64,7 @@ Putting the CPU out of kernel mode is done by jumping out of the kernel section.
 
 [^1]: Kernel details depends on implementation.
 
-### Memory management unit
+### MMU: memory management unit
 
 Address spaces are stored by reading from designated areas of the memory. In
 order to bootstrap the space, the fixed kernel space is set through the MMU
@@ -74,7 +74,31 @@ in variable kernel space directs which userspace segments are loaded.
 
 Cleverly, this allows the kernel to switch userland processes by performing a
 couple of memory instructions: setting the userspace mapping reference in fixed
-kernel space.
+kernel space. Flushing the MMU reloads its values, which a jump can take effect.
+
+```
+                 64 KiB
+             /-------------\
+ {           } /---------{ |         }
+ |-----------|[M]--------|[M]--------|
+ | userland  | kfixed    | kvariable |
+   48 KiB      12 KiB      4 KiB
+```
+
+Figure above depicts the memory map chain from `kfixed`, to `kvariable`, to
+`userland`. `kfixed` is a special section mapped by the MMU through the DMAC
+interface.
+
+### DMAC: direct memory access controller
+
+A DMAC operates the MMU and its managed memory. Through it's I/O (device `0`)
+interface, only operable in kernel mode and mapped to a section in fixed kernel
+space, reading from and writing to its registers controls the physical
+operations on memory.
+
+...
+
+- `setk` (set 'kernel' section to 12 KiB of linear physical memory).
 
 ## Memory layout
 
@@ -84,7 +108,6 @@ memory map.
 In between the square brackets is the amount of segments necessary for that
 section.
 
-- Memory map `[3]`
 - Process data `[1]`
     - process/thread id
     - stack base/frame/insertion ptrs

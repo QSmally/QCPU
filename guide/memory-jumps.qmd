@@ -1,7 +1,6 @@
 ---
 title: "Jumps and branches"
-subtitle: ""
-description: ""
+description: "Efficiently moving the instruction pointer(s) around."
 date: 2023-10-14
 categories: [memory, addressing]
 ---
@@ -23,3 +22,5 @@ jmp <mode:call,long> sel, .address   ; absolute call
 | `01` | short (relative), call (maybe not used?)      |
 | `10` | long (absolute), jump (get directive)         |
 | `11` | long (absolute), call                         |
+
+... needing a dynamic address requires a `mldw` proceeded by a `jmp sid`
