@@ -1,0 +1,13 @@
+---
+title: "Assembler"
+subtitle: "Build programs for QCPU"
+description: "QCPU's assembly language, linker and compiler extensions."
+date: 2023-11-04
+categories: [assembly]
+---
+
+<!--
+TODO: Kernel/operating system (boot procedure), filesystem, interrupts
+-->
+
+...
