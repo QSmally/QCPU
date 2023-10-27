@@ -1,8 +1,9 @@
 ---
 title: "Guide"
 listing:
-  type: default
+  categories: true
   fields: [title, subtitle, description, date, categories, reading-time]
   sort: date
+  type: default
 page-layout: article
 ---

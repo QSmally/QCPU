@@ -22,12 +22,30 @@ Note: verify use of zero register
 An accumulator clear could be `AST r; SUB r;`
 :::
 
+### Special registers
+
+There are a couple of special, non-addressable registers:
+
+- Executable globals `[u16]`
+- Stack base `[u16]`
+- Stack frame `[u16]`
+- Process id `[u8]`
+- Thread id `[u8]`
+
 ### Index register
 
 Certain memory operations use registers `rx` and `ry` as the 16 bit index
-register, with `rz` being the dynamic offset register.
+register, with `rz` being the dynamic offset register when the instruction
+requires it.
 
-### Selectors
+The `mstw` and `mldw` instructions (memory store/load 'word') both use the index
+register as source and destination
+
+::: {.note}
+mstw using index register selector to store index register???
+:::
+
+## Selectors
 
 Memory instructions can use a known base address.
 

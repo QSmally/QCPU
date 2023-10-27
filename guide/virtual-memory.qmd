@@ -57,7 +57,7 @@ to designated parts of kernel space, which doesn't trigger a segfault:
 ```{.asm}
 mldw sfb, 3      ; load address of string from stack
 imm  rz,  0x00   ; mask 0
-sysc @open
+sysc @fopen
 ```
 
 Putting the CPU out of kernel mode is done by jumping out of the kernel section.
@@ -103,23 +103,20 @@ operations on memory.
 ## Memory layout
 
 For the userland, memory is divided into multiple sections per the process
-memory map.
+memory map. In between the square brackets is the amount of segments necessary
+for that section.
 
-In between the square brackets is the amount of segments necessary for that
-section.
-
-- Process data `[1]`
-    - process/thread id
-    - stack base/frame/insertion ptrs
+- Instance data `[1]`
+    - process, thread id
+    - stack base, frame, insertion ptrs
 - Globals (mutable) `[1]`
-- Text (+ (dynamic) libaries) `[1+]`
-- Stack `[1+ ...]`
+- Locals (mutable, thread-local) `[0+]`
+    - pointed to by globals
+- Text (+ (dynamic) libaries, readonly) `[1+]`
+- Stack (thread-local) `[1+...]`
     - env, args, exit ptrs
+    - initial stack structure by executable
 - Heap `[...rest]`
-
-::: {.note}
-Note: memory map for heap should sync between threads of processes
-:::
 
 ## Mapping model
 
@@ -133,7 +130,6 @@ The MMU holds a table of virtual segments and their physical address for the
 userspace. It also holds the flags belonging to the segment.
 
 0. Flags
-    - Non-overwritable
     - Readonly
     - Copy-on-write
 2. Device id
