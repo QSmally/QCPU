@@ -13,6 +13,7 @@ website:
       - pages/index.qmd
       - pages/layout.qmd
       - pages/kernel.qmd
+      - pages/cli.qmd
     right:
       - text: Guide
         href: guide/index.qmd

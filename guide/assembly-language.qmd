@@ -1,5 +1,5 @@
 ---
-title: "Assembler"
+title: "Assembly language"
 subtitle: "Build programs for QCPU"
 description: "QCPU's assembly language, linker and compiler extensions."
 date: 2023-11-04
@@ -30,11 +30,12 @@ If a line starts with the `@` symbol, it refers to an assembler directive.
     - `@end`
 - `@macro <name> <arguments>`: defines reusable text
     - `@end`
-- `@section <type>`: marks the start of a section
+- `@section <type>`: marks the start of a section, for userland
     - `globals`: shared by threads, max. 256 bytes, fixed size
     - `locals`: thread-local, fixed size
     - `stack`: thread-local, initially max. 256 bytes
     - `text`: readonly
+- `@org <address>`: marks the text or data section address
 
 ### Compiler extensions
 
