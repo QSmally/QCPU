@@ -109,6 +109,7 @@ for that section.
 - Instance data `[1]`
     - process, thread id
     - stack base, frame, insertion ptrs
+    - context register copy (sysc)
 - Globals (mutable) `[1]`
 - Locals (mutable, thread-local) `[0+]`
     - pointed to by globals

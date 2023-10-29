@@ -16,26 +16,28 @@ Like most assemblers, each QCPU 2 source line contains some combination of the
 following four fields:
 
 ```{.asm}
-label:      instr operands          ; comments
+label:          instr operands          ; comments
 ```
 
 If a line starts with the `@` symbol, it refers to an assembler directive.
 
 ## Directives
 
-- `@import <file>`: a section-wise include (static linking)
+- `@import <file>`: a section-wise include, or a simple paste (static linking)
+- `@org <address>`: marks the text or data section address
 - `@define <name> <value>`: a C preprocessor-like define
 - `@define <namespace>`: a collection of definitions
     - `@define <name> <value>`: adds `@namespace.name`
     - `@end`
 - `@macro <name> <arguments>`: defines reusable text
     - `@end`
+- `@region <size>`: marks a region with a fixed size, default filled with zeros
+    - `@end`
 - `@section <type>`: marks the start of a section, for userland
     - `globals`: shared by threads, max. 256 bytes, fixed size
     - `locals`: thread-local, fixed size
     - `stack`: thread-local, initially max. 256 bytes
     - `text`: readonly
-- `@org <address>`: marks the text or data section address
 
 ### Compiler extensions
 
@@ -81,6 +83,10 @@ A couple of special pseudo-instructions manage the encoding of data:
 - `reserve`: uninitialised amount of data
 
 See the instruction set page for more a reference.
+
+A comma between the first operand (that resides in the instruction) and its
+secondary byte (such as an offset) is short for having a newline and `u8 ...`.
+Having `imm ra, 0x01` is therefore a composition of `imm ra` and `u8 0x01`.
 
 ## Snippet
 

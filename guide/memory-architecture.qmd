@@ -32,12 +32,12 @@ access.
 
 For the selector, it's the known base pointer for the first memory access:
 
-| selector | short | description                       |
-|----------+-------+-----------------------------------|
-| `00`     | `sid` | index registers (x/y)             |
-| `01`     | `sgl` | globals, included with executable |
-| `10`     | `ssb` | stack base position               |
-| `11`     | `sfb` | current stack frame position      |
+| selector | short | description                               |
+|----------+-------+-------------------------------------------|
+| `00`     | `sid` | index registers (x/y)                     |
+| `01`     | `sgl` | globals (/kernel base position, `0xC000`) |
+| `10`     | `ssb` | stack base position                       |
+| `11`     | `sfb` | current stack frame position              |
 
 ::: {.note}
 Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
