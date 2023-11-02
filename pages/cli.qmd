@@ -2,9 +2,9 @@
 title: "CLI"
 ---
 
-- `qcpu [-o output] file.s | file.o | file...`: performs preprocessing,
-  assembling and linking of the designated files. A file may be an assembly,
-  object or executable file.
+- `qcpu [-o output] [--offset address] file.s | file.o | file...`: performs
+  preprocessing, assembling and linking of the designated files. A file may be
+  an assembly, object or executable file.
 - `qcpu -c [-o output.o] file.s...`: performs only preprocessing and
   assembling.
 - `qcpu -p [-o output.s] file.s...`: performs only preprocessing.
@@ -12,14 +12,11 @@ title: "CLI"
 An optimiser option may be set to cut out dead text paths, `-O1` (first level
 optimisation).
 
-::: {.note}
-TODO: define devices and their register ABI for the device id
-:::
-
 ### Linker
 
-- `qcpul [-o output] [kernel.o] file.o...`: the jump to main of the linker,
-  called from the linking step of `qcpu` and `qcpuc`.
+- `qcpul [-o output] [--offset address] file.o...`: the jump to main of the
+  linker, called from the linking step of `qcpu` and `qcpuc`. An offset is its
+  virtual label linking offset (defaults to 0).
 
 QCPU CLI's linker alters instructions depending on the address (e.g. relative
 vs. absolute jumps), and may insert additional data for that, aside from kernel
@@ -34,6 +31,18 @@ Coming soon™
 - `qcpuc -c [-o output.o] file.c...`: performs compilation and assembling
   without linking.
 - `qcpuc -p [-o output.c] file.c...`: only performs the language preprocessor.
+
+## Bootstrapping filesystem
+
+- `qcpub --create [--bootable executable] [--device id] filesystem.o`
+- `qcpub --copy [--device id] new_filesystem.o filesystem.o`
+- `qcpub --add [--continuous] [--name string] linked_file path filesystem.o`
+- `qcpub --add /directory filesystem.o`
+- `qcpub --rm path filesystem.o`
+- `qcpub --tree filesystem.o`
+
+A filesystem object can finally be linked through `qcpul filesystem.o`. Its
+starting physical address is `0x##0000`, with `##` being the device id.
 
 ## Emulation
 
@@ -61,14 +70,3 @@ is then done to map globals, locals and the stack.
 
 In an operating system environment, it's useful to set up a Makefile to perform
 all the commands in steps.
-
-```{.makefile}
-SOURCES = boot/main.s kernel/main.s bin/sh.s
-OBJECTS = ${SOURCES:.s=.o}
-
-.s.o:
-    qcpu -c $<
-
-all: ${OBJECTS}
-    qcpu -o output ${OBJECTS}
-```
