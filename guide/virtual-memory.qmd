@@ -98,18 +98,23 @@ operations on memory.
 
 ...
 
-- `setk` (set 'kernel' section to 12 KiB of linear physical memory).
+- `exec(device id)`: set 'kernel' section to the boot sector of a specific
+  device id.
+- `setk(segment start address)`: set 'kernel' section to 12 KiB of linear
+  physical memory, from a starting segment in the current device (likely taken
+  from the memory map).
 
 ## Memory layout
 
 For the userland, memory is divided into multiple sections per the process
 memory map. In between the square brackets is the amount of segments necessary
-for that section.
+for that section. Kernel objects are laid out the same with the only exceptions
+being that mappings (i.e. heap) don't function.
 
 - Instance data `[1]`
-    - process, thread id
-    - stack base, frame, insertion ptrs
-    - context register copy (sysc)
+    - globals, stack base, frame, insertion ptrs
+    - process, thread id (userland)
+    - context register copy (userland, sysc)
 - Globals (mutable) `[1]`
 - Locals (mutable, thread-local) `[0+]`
     - pointed to by globals
@@ -118,6 +123,10 @@ for that section.
     - env, args, exit ptrs
     - initial stack structure by executable
 - Heap `[...rest]`
+
+::: {.note}
+Shared objects and address offsets.
+:::
 
 ## Mapping model
 
@@ -133,5 +142,6 @@ userspace. It also holds the flags belonging to the segment.
 0. Flags
     - Readonly
     - Copy-on-write
+1. [unused]
 2. Device id
 3. Segment address

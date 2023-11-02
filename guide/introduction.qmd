@@ -5,6 +5,9 @@ date: 2023-10-5
 categories: []
 ---
 
+QCPU 2 is a singular operand architecture, which means its instructions can be
+8 bits in size. Its address space, however, is 16 bits.
+
 QCPU's assembler will automatically choose the memory mode of the instruction
 depending on the expression syntax and whichever is more efficient and possible.
 For example, a jump will be done in relative mode unless its out of the range of
@@ -42,12 +45,13 @@ The `mstw` and `mldw` instructions (memory store/load 'word') both use the index
 register as source and destination
 
 ::: {.note}
-mstw using index register selector to store index register???
+`mstw` would store the address of itself with address mode `sid`
 :::
 
 ## Selectors
 
-Memory instructions can use a known base address.
+Memory instructions can use a known base address, also known as selectors. See
+the memory architecture page for more information.
 
 0. Index register
 1. Executable globals
