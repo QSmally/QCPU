@@ -29,3 +29,5 @@ format:
       light: yeti
       dark: cyborg
     css: publish/style.css
+    bibliography: publish/references.bib
+    csl: https://www.zotero.org/styles/ieee-control-systems

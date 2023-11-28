@@ -12,6 +12,6 @@ WORKDIR /quarto-cli
 # python3 -m pip install jupyter matplotlib plotly
 RUN ./configure.sh
 
-COPY render.sh /docker-entrypoint.d/90-render.sh
+COPY publish/render.sh /docker-entrypoint.d/90-render.sh
 
 VOLUME /Content

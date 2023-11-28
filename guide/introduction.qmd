@@ -19,7 +19,7 @@ For example, a jump will be done in relative mode unless its out of the range of
 - General purpose: `rb`, `rc`, `rd`, `re`, `rf` (0-4)
 - Subroutine args: `rx`, `ry`, `rz` (5-7)
 
-::: {.note}
+::: {.callout-note}
 Note: verify use of zero register
 
 An accumulator clear could be `AST r; SUB r;`
@@ -44,7 +44,7 @@ requires it.
 The `mstw` and `mldw` instructions (memory store/load 'word') both use the index
 register as source and destination
 
-::: {.note}
+::: {.callout-note}
 `mstw` would store the address of itself with address mode `sid`
 :::
 

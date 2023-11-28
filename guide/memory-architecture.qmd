@@ -47,7 +47,7 @@ by adding the 'offset' (`'`) flag to the access mode. It results in unsigned
 register `rz` being added to the address. Together, registers `rx`, `ry`, `rz`
 make up the memory registers.
 
-::: {.note}
+::: {.callout-note}
 Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
 :::
 
