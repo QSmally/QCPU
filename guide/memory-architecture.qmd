@@ -6,13 +6,6 @@ date: 2023-10-8
 categories: [memory]
 ---
 
-<!--
-https://en.wikipedia.org/wiki/Intel_8080
-https://en.wikipedia.org/wiki/MOS_Technology_6502
-https://en.wikipedia.org/wiki/Motorola_6800
-https://en.wikipedia.org/wiki/Zilog_Z80
--->
-
 ...
 
 ## Memory access
@@ -45,7 +38,7 @@ Each memory access can have a static offset, which is an 8 bit unsigned
 immediate integer which is added to the address. A dynamic offset can be added
 by adding the 'offset' (`'`) flag to the access mode. It results in unsigned
 register `rz` being added to the address. Together, registers `rx`, `ry`, `rz`
-make up the memory registers.
+make up the memory registers @zilog-z80 [p. 34-38].
 
 ::: {.callout-note}
 Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
