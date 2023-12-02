@@ -16,7 +16,7 @@ In turn, the MMU reads from the map in order to put the link between virtual
 QCPU has a single virtual space, divided into multiple address spaces. Each
 process has its own userland, whilst a kernel is always loaded on the same
 address offset regardless of which process is currently being executed
-@linux-address-space.
+@linux-address-space @arm-memory-management [chap. 5].
 
 ```
                  64 KiB
@@ -158,23 +158,3 @@ dynamically mapped removes total space overhead compared to loading it into
 
 Bootable partitions are also loaded in `kvariable` space by the initial boot
 sector. @sec-dmac explains the exact DMAC behaviour.
-
-## Mapping model
-
-A kernel can only map segments of 256 bytes to a process' virtual memory. In
-order to handle multiple smaller allocations efficiently, like 24 byte arrays
-and a couple of small objects, an allocator layer in userland may be used. A
-system call is only done when more physical space is necessary for the
-allocation rather than with every single allocation @gnu-allocator.
-
-The MMU holds a table of virtual segments and their physical address for the
-userspace. It also holds the flags belonging to the segment @arm-architecture
-[chap. 4].
-
-0. Flags
-    - Cacheable
-    - Readonly
-    - Copy-on-write
-1. [unused]
-2. Segment address (l)
-3. Segment address (h)

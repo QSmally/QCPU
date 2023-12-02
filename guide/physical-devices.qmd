@@ -1,0 +1,57 @@
+---
+title: "Physical devices"
+description: "Physical mapping, I/O and memory devices"
+date: 2023-12-3
+categories: [memory, addressing, io]
+---
+
+...
+
+```
+*----------*             *----------*    *-                 -*
+|          |             |          | ___ boot ROM 'regfile' |
+|          |             |          | ___ I/O 0 regfile      |
+|          |             |          | ___ I/O 1 regfile      |
+| virtual  | ___ MMU ___ | physical | ___ I/O n regfile      | physical
+| memory   |             | memory   |                        | devices
+|          |             |          | ___ main memory        |
+|          |             |          | ___ (I/O reference)    |
+|          |             |          |                        |
+*----------*             *----------*    *-                 -*
+```
+
+## Address alignment
+
+```
+                24 bit
+23                          7        0
+|---------------------------|--------|
+| physical address          | offset |
+  16 bit                      8 bit
+```
+
+... @arm-memory-management [chap. 5]
+
+<!--
+... means the minimum amount of space per physical segment is 256 bytes
+-->
+
+## MMU: memory management unit
+
+A kernel can only map segments of 256 bytes to a process' virtual memory. In
+order to handle multiple smaller allocations efficiently, like 24 byte arrays
+and a couple of small objects, an allocator layer in userland may be used. A
+system call is only done when more physical space is necessary for the
+allocation rather than with every single allocation @gnu-allocator.
+
+The MMU holds a table of virtual segments and their physical address for the
+userspace. It also holds the flags belonging to the segment @arm-architecture
+[chap. 4] @arm-memory-management [chap. 4].
+
+0. Flags
+    - Cacheable
+    - Readonly
+    - Copy-on-write
+1. [unused]
+2. Physical address (l)
+3. Physical address (h)
