@@ -8,36 +8,38 @@ filters:
     - include-code-files
 ---
 
-<!--
-TODO: Kernel/operating system (boot procedure), filesystem, interrupts
--->
-
 Like most assemblers, each QCPU 2 source line contains some combination of the
 following four fields:
 
 ```{.asm}
-label:          instr operands          ; comments
+label:      instr operands          ; comments                            col 80
 ```
 
 If a line starts with the `@` symbol, it refers to an assembler directive.
 
 ## Directives
 
-- `@import <file>`: a section-wise include, or a simple paste (static linking)
-- `@org <address>`: marks the text or data section address
+An assembler can read directives from the QCPU assembly file. Each directive
+starts with an `@` symbol and don't represent any size in the assembly (except
+for an `@include` or the result of such a directive).
+
+- `@include <file>`: include a file, conventionally for ABI interfaces
+- `@org <address>`: marks the linker offset (`--offset <address>` in `qcpul`)
 - `@define <name> <value>`: a C preprocessor-like define
 - `@define <namespace>`: a collection of definitions
     - `@define <name> <value>`: adds `@namespace.name`
     - `@end`
-- `@macro <name> <arguments>`: defines reusable text
+- `@macro <name> [arguments...]`: defines reusable text
     - `@end`
 - `@region <size>`: marks a region with a fixed size, default filled with zeros
     - `@end`
-- `@section <type>`: marks the start of a section, for userland
+- `@section <type>`: marks the start of a section, managed by the linker
+    - [`instance`: address space interface, usually defined by the linker]
     - `globals`: shared by threads, max. 256 bytes, fixed size
-    - `locals`: thread-local, fixed size
+    - `gextension`: extension on globals, fixed size
+    - `signals`: process signal vector
     - `stack`: thread-local, initially max. 256 bytes
-    - `text`: readonly
+    - `text`: readonly, executable
 
 ### Compiler extensions
 
@@ -50,18 +52,18 @@ An example is `kext-stack-base`:
 
 ```{.asm}
 @macro kext-stack-base
-env:        reserve u16 1
-args:       reserve u16 1
+.env:       reserve u16 1
+.args:      reserve u16 1
 @end
 ```
 
 ## References
 
 Labels are used to reference either data or text. A public `reference:` can be
-accessed by any file which `@import`s it. In contrast, a `.reference:` is a
-file-local label which can only be accessed by the addresses in the same file. A
-linker error is thrown if a private label was attempted to be accessed from the
-outside.
+accessed by any file which is linked against it. In contrast, a `.reference:` is
+a file-local label which can only be accessed by the addresses in the same file.
+A linker error is thrown if a private label was attempted to be accessed from
+the outside.
 
 An executable is required to have a public `main:` label.
 
@@ -82,7 +84,7 @@ A couple of special pseudo-instructions manage the encoding of data:
 - `ascii`: like u8, but with explicit ASCII encoding
 - `reserve`: uninitialised amount of data
 
-See the instruction set page for more a reference.
+See the instruction set page for a reference.
 
 A comma between the first operand (that resides in the instruction) and its
 secondary byte (such as an offset) is short for having a newline and `u8 ...`.
