@@ -22,7 +22,7 @@ For example, a jump will be done in relative mode unless its out of the range of
 ::: {.callout-note}
 Note: verify use of zero register
 
-An accumulator clear could be `AST r; SUB r;`
+An accumulator clear could be `AST r; SUB r;` or `IMM ra, 0x00`.
 :::
 
 ### Special registers
@@ -52,8 +52,3 @@ register as source and destination
 
 Memory instructions can use a known base address, also known as selectors. See
 the memory architecture page for more information.
-
-0. Index register
-1. Executable globals
-2. Stack base
-3. Stack frame

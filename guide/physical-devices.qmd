@@ -5,38 +5,65 @@ date: 2023-12-3
 categories: [memory, addressing, io]
 ---
 
-...
+The benefit of using virtual addresses is that it allows management software,
+such as a kernel, to control the view of memory that is presented to software.
+The kernel can control what memory is visible, the virtual address at which that
+memory is visible, and what accesses are permitted to that memory. This allows
+the kernel to sandbox applications (hiding the resources of one application from
+another application) and to provide abstraction from the underlying hardware
+@arm-memory-management [chap. 3].
 
 ```
-*----------*             *----------*    *-                 -*
-|          |             |          | ___ boot ROM 'regfile' |
-|          |             |          | ___ I/O 0 regfile      |
-|          |             |          | ___ I/O 1 regfile      |
-| virtual  | ___ MMU ___ | physical | ___ I/O n regfile      | physical
-| memory   |             | memory   |                        | devices
-|          |             |          | ___ main memory        |
-|          |             |          | ___ (I/O reference)    |
-|          |             |          |                        |
-*----------*             *----------*    *-                 -*
+*----------*             *----------*    *-                   -*
+|          |             |          | ___ I/O 0 'boot' regfile |
+|  64 KiB  |             |  16 MiB  | ___ I/O 1 'dmac' regfile |
+|          |             |          | ___ I/O ... regfile      |
+| virtual  | ___ MMU ___ | physical | ___ I/O 23 regfile       | physical
+| memory   |             | memory   |                          | devices
+|          |             |          | ___ main memory          |
+|          |             |          | ___ (I/O reference)      |
+|          |             |          |                          |
+*----------*             *----------*    *-                   -*
 ```
 
 ## Address alignment
 
 ```
-                24 bit
-23                          7        0
-|---------------------------|--------|
-| physical address          | offset |
+                  24 bit
+23                          7             0
+|---------------------------|-------------|
+| physical address          | offset      |
   16 bit                      8 bit
+                              256 byte page size
+
 ```
 
-... @arm-memory-management [chap. 5]
+A resolved address is the combination of a physical address and an offset
+@arm-memory-management [chap. 5]. In this case, there's a 16 bit physical
+address and an 8 bit offset, which means the minimum amount of space per
+physical page is 256 bytes. An offset is left out when passing around physical
+addresses. Memory is allocated in 256 byte blocks. @sec-mmu explains strategies
+for small allocations.
 
-<!--
-... means the minimum amount of space per physical segment is 256 bytes
--->
+```
+                  24 bit
+23            15            7             0
+|-------------|-------------|-------------|
+| physical address          | offset      |
+              |-------------|-------------|
+              | virtual address           |
 
-## MMU: memory management unit
+```
+
+A translation of the upper virtual address byte is done to resolve to a 16 bit
+physical address. The lower byte of the virtual address, the offset, is the same
+offset in the resolved address in order to perform byte-specific operations on
+the designated memory page.
+
+Contrary to physical resolved addresses, the 16 bit virtual address is passed
+around userland in its entirety.
+
+## MMU: memory management unit {#sec-mmu}
 
 A kernel can only map segments of 256 bytes to a process' virtual memory. In
 order to handle multiple smaller allocations efficiently, like 24 byte arrays
@@ -55,3 +82,40 @@ userspace. It also holds the flags belonging to the segment @arm-architecture
 1. [unused]
 2. Physical address (l)
 3. Physical address (h)
+
+## I/O: input and output
+
+There are 24 total pages mapped to I/O devices. Each page is a 256 byte register
+file to communicate with the device, and the rest is managed by the main memory
+port @arm-memory-management [chap. 3]. Every one of the I/O devices has 4
+interrupt pins each, resulting in 96 total external interrupts. There are 32
+system calls for a grand total of 128 interrupts. It means exactly one page of
+256 bytes are allocated for the interrupt map with a 16 bit address per
+interrupt. The I/O device address range is from `0x000000` to `0x001700` (6.144
+bytes).
+
+Two built-in I/O devices are present in the QCPU microcontroller:
+
+* 'Boot' sector ROM device [`0`],
+* 'DMAC' device [`1`].
+
+Interrupts with a lower address have higher priority. An interrupt with address
+0 can therefore interrupt the interrupt with address 1[^1]. Having two
+predetermined I/O devices give 8 CPU interrupts, mainly for maintenance and
+security:
+
+| address   | name    | description                                                 |
+|-----------+---------+-------------------------------------------------------------|
+| `####000` | `reset` | reset pin active (highest priority)                         |
+| `####001` |         |                                                             |
+| `####010` |         |                                                             |
+| `####011` |         |                                                             |
+| `####100` | `segv`  | on unmapped or unprivileged virtual memory access           |
+| `####101` | `cow`   | a memory page is being written to with copy-on-write active |
+| `####110` | `mmap`  | a (physical) map request of an I/O device was received      |
+| `####111` |         | (lowest system priority, higher than I/O)                   |
+
+An interrupt can come with data depending on the I/O device, which can be read
+from the I/O register file, usually through a device driver.
+
+[^1]: Feature is currently uncertain.
