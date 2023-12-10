@@ -5,10 +5,17 @@ Files related to the QCPU 2 architecture development.
 
 ## Page render
 
-A rendered version of the documentation can be previewed through the Quarto CLI.
+A preview version of the documentation can be previewed through the Quarto CLI.
 
 ```bash
 $ quarto preview
+```
+
+Alternatively, there's an Nginx server which automatically renders the
+documentation on start-up:
+
+```bash
+$ docker compose up -d # view at localhost:80
 ```
 
 ## Further reading

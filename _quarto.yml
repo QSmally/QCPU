@@ -17,6 +17,8 @@ website:
     right:
       - text: Guide
         href: guide/index.qmd
+      - text: Snippets
+        href: snippets
       - icon: github
         href: https://github.com/QSmally/QCPU
 
