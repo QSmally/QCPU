@@ -15,25 +15,18 @@ For example, a jump will be done in relative mode unless its out of the range of
 
 ## Register map
 
-- Accumulator: `ra`
-- General purpose: `rb`, `rc`, `rd`, `re`, `rf` (0-4)
+- Accumulator: `ra` (0)
+- Zero register: `zr` (0)
+- General purpose: `rb`, `rc`, `rd`, `re`  (1-4)
 - Subroutine args: `rx`, `ry`, `rz` (5-7)
-
-::: {.callout-note}
-Note: verify use of zero register
-
-An accumulator clear could be `AST r; SUB r;` or `IMM ra, 0x00`.
-:::
 
 ### Special registers
 
 There are a couple of special, non-addressable registers:
 
-- Executable globals `[u16]`
-- Stack base `[u16]`
-- Stack frame `[u16]`
-- Process id `[u8]`
-- Thread id `[u8]`
+- Executable global pointer `[u16]`
+- Stack base pointer `[u16]`
+- Stack frame pointer `[u16]`
 
 ### Index register
 
@@ -47,8 +40,3 @@ register as source and destination
 ::: {.callout-note}
 `mstw` would store the address of itself with address mode `sid`
 :::
-
-## Selectors
-
-Memory instructions can use a known base address, also known as selectors. See
-the memory architecture page for more information.

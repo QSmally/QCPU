@@ -20,10 +20,10 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `0-0100-###` | **xch**  | Exchange register and accumulator  | 1 | `'reg' = acc, acc = 'reg'`            |
 | `0-0101-###` | **ast**  | Accumulator store                  | 1 | `acc = 'reg'`                         |
 | `0-0110-###` | **rst**  | Register store                     | 1 | `'reg' = acc`                         |
-| `0-0111-###` | **inc**  | Increment                          | 1 | `'reg' = 'reg' + 1`                   |
-| `0-1000-###` | **dec**  | Decrement                          | 1 | `'reg' = 'reg' - 1`                   |
-| `0-1001-###` | **neg**  | Negate                             | 1 | `'reg' = -'reg'`                      |
-| `0-1010-###` | **rsh**  | Right shift                        | 1 | `'reg' = 'reg' >> 1`                  |
+| `0-0111-###` | **inc**  | Increment                          | 1 | `'reg' = 'reg' + 1` zr = acc          |
+| `0-1000-###` | **dec**  | Decrement                          | 1 | `'reg' = 'reg' - 1` zr = acc          |
+| `0-1001-###` | **neg**  | Negate                             | 1 | `'reg' = -'reg'` zr = acc             |
+| `0-1010-###` | **rsh**  | Right shift                        | 1 | `'reg' = 'reg' >> 1` zr = acc         |
 | `0-1011-###` | **add**  | Addition                           | 1 | `acc = acc + 'reg'`                   |
 | `0-1100-###` | **sub**  | Subtraction                        | 1 | `acc = acc - 'reg'`                   |
 | `0-1101-###` | **ior**  | Bitwise incl. OR (insert bits)     | 1 | `acc = acc IOR 'reg'`                 |
@@ -34,7 +34,7 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `1-0010-###` | **bsr**  | Barrel shift right                 | 1 | `acc = acc >> 'amt'`                  |
 | `1-0011-###` | **bsrd** | Barrel shift right (pointer)       | 1 | `acc = acc >> 'reg'`                  |
 | `1-01-#####` | **sysc** | System call interrupt              | 1 | `push(pc, fb), int('sysc')`           |
-| `0-1000-###` | **push** | Push register + immediate to stack | 2 | `push('reg' + imm)` ra = 0            |
+| `0-1000-###` | **push** | Push register + immediate to stack | 2 | `push('reg' + imm)`                   |
 | `1-1001-###` | **brh**  | Conditionally jump to address      | 2 | `pc = + imm on [delayed] 'condition'` |
 | `1-1010#-##` | **jmp**  | Jump to address                    | 2 | `pc = ('sel' or pc) + imm`            |
 | `1-1011-###` | **jmpl** | Jump to address (and link)         | 2 | `push(pc, fb), pc = + imm`            |
@@ -45,11 +45,20 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 : {tbl-colwidths=[10,10,35,5,40]}
 :::
 
-| Mapped instructions | Short   | Description     |
-|---------------------+---------+-----------------|
-| `bsl 0`             | **nop** | what you expect |
-| `bsr 0`             | **nop** |                 |
-: {tbl-colwidths=[25,25,50]}
+| Mapped instructions | Short   | Description                |
+|---------------------+---------+----------------------------|
+| `xch 0`             |         |                            |
+| `ast 0`             | **clr** | Accumulator clear          |
+| `rst 0`             |         |                            |
+| `add 0`             | **nop** | What you'd expect; nothing |
+| `sub 0`             |         |                            |
+| `ior 0`             |         |                            |
+| `xor 0`             |         |                            |
+| `bsl 0`             |         |                            |
+| `bsld 0`            |         |                            |
+| `bsr 0`             |         |                            |
+| `bsrd 0`            |         |                            |
+: {tbl-colwidths=[25,10,65]}
 
 | Flags | Name   | Representation            |
 |-------+--------+---------------------------|
@@ -61,4 +70,4 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `101` | **!S** | `if !signed`              |
 | `110` | **!Z** | `if acc != 0`             |
 | `111` | **!U** | `if !underflow`           |
-: {tbl-colwidths=[25,25,50]}
+: {tbl-colwidths=[25,10,65]}
