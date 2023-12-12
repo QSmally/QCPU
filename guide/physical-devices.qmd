@@ -83,6 +83,14 @@ userspace. It also holds the flags belonging to the segment @arm-architecture
 2. Physical address (l)
 3. Physical address (h)
 
+<!--
+0. Flags
+    - Cacheable
+    - Readonly
+    - Copy-on-write
+1. Physical address
+-->
+
 ## I/O: input and output
 
 There are 24 total pages mapped to I/O devices. Each page is a 256 byte register
@@ -104,18 +112,24 @@ Interrupts with a lower address have higher priority. An interrupt with address
 predetermined I/O devices give 8 CPU interrupts, mainly for maintenance and
 security:
 
-| address   | name    | description                                                 |
-|-----------+---------+-------------------------------------------------------------|
-| `####000` | `reset` | reset pin active (highest priority)                         |
-| `####001` |         |                                                             |
-| `####010` |         |                                                             |
-| `####011` |         |                                                             |
-| `####100` | `segv`  | on unmapped or unprivileged virtual memory access           |
-| `####101` | `cow`   | a memory page is being written to with copy-on-write active |
-| `####110` | `mmap`  | a (physical) map request of an I/O device was received      |
-| `####111` |         | (lowest system priority, higher than I/O)                   |
+| address   | name    | description                                                                        |
+|-----------+---------+------------------------------------------------------------------------------------|
+| `####000` | `reset` | reset pin active (highest priority)                                                |
+| `####001` | `lcktl` | interrupt 'locked too long' exception                                              |
+| `####010` |         | reserved                                                                           |
+| `####011` |         | reserved                                                                           |
+| `####100` | `segv`  | on unmapped or unprivileged virtual memory access                                  |
+| `####101` | `cow`   | a memory page is being written to with copy-on-write active                        |
+| `####110` | `mmap`  | a (physical) map request of an I/O device was received                             |
+| `####111` | `systm` | system timer for preemptive multitasking (lowest system priority, higher than I/O) |
 
 An interrupt can come with data depending on the I/O device, which can be read
 from the I/O register file, usually through a device driver.
 
+Interrupt locks can delay incoming interrupt requests **from 0b0001000 onwards**
+(that is, important system interrupts can still be executed). There's an
+internal clock timer running when the lock is active, and if the lock is high
+for too long[^2], a `lcktl` ('locked too long') interrupt may get thrown.
+
 [^1]: Feature is currently uncertain.
+[^2]: Timeout of `lcktl` is system dependent.

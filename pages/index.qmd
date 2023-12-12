@@ -4,43 +4,61 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 ---
 
 ::: {.column-screen-inset-left}
-| QCPU 2CR     | Short    | Description                       | B | Representation                        |
-|--------------+----------+-----------------------------------+---+---------------------------------------|
-| `0-0000-000` |          |                                   |   |                                       |
-| `0-0000-001` |          |                                   |   |                                       |
-| `0-0000-010` |          |                                   |   |                                       |
-| `0-0000-011` |          |                                   |   |                                       |
-| `0-0000-100` |          |                                   |   |                                       |
-| `0-0000-101` |          |                                   |   |                                       |
-| `0-0000-110` |          |                                   |   |                                       |
-| `0-0000-111` |          |                                   |   |                                       |
-| `0-0001-###` |          |                                   |   |                                       |
-| `0-0010-###` |          |                                   |   |                                       |
-| `0-0011-###` | **imm**  | Load immediate into register      | 2 | `'reg' = imm`                         |
-| `0-0100-###` | **xch**  | Exchange register and accumulator | 1 | `'reg' = acc, acc = 'reg'`            |
-| `0-0101-###` | **ast**  | Accumulator store                 | 1 | `acc = 'reg'`                         |
-| `0-0110-###` | **rst**  | Register store                    | 1 | `'reg' = acc`                         |
-| `0-0111-###` | **inc**  | Increment                         | 1 | `'reg' = 'reg' + 1`                   |
-| `0-1000-###` | **dec**  | Decrement                         | 1 | `'reg' = 'reg' - 1`                   |
-| `0-1001-###` | **neg**  | Negate                            | 1 | `'reg' = -'reg'`                      |
-| `0-1010-###` | **rsh**  | Right shift                       | 1 | `'reg' = 'reg' >> 1`                  |
-| `0-1011-###` | **add**  | Addition                          | 1 | `acc = acc + 'reg'`                   |
-| `0-1100-###` | **sub**  | Subtraction                       | 1 | `acc = acc - 'reg'`                   |
-| `0-1101-###` | **ior**  | Bitwise incl. OR (insert bits)    | 1 | `acc = acc IOR 'reg'`                 |
-| `0-1110-###` | **and**  | Bitwise AND (mask/remove bits)    | 1 | `acc = acc AND 'reg'`                 |
-| `0-1111-###` | **xor**  | Bitwise excl. OR (toggle bits)    | 1 | `acc = acc XOR 'reg'`                 |
-| `1-0000-###` | **bsl**  | Barrel shift left                 | 1 | `acc = acc << 'amt'`                  |
-| `1-0001-###` | **bsll** | Barrel shift left (pointer)       | 1 | `acc = acc << 'reg'`                  |
-| `1-0010-###` | **bsr**  | Barrel shift right                | 1 | `acc = acc >> 'amt'`                  |
-| `1-0011-###` | **bsrl** | Barrel shift right (pointer)      | 1 | `acc = acc >> 'reg'`                  |
-| `1-01-#####` | **sysc** | System call interrupt             | 1 | `push('sc', acc, pc + 1), pc = const` |
-| `1-1000-###` | **msp**  | Mutate the stack pointer          | 1 | `spt = spt + 'bytes'`                 |
-| `1-1001-###` | **brh**  | Conditionally jump to address     | 2 | `pc = + imm on [delayed] 'condition'` |
-| `1-1010#-##` | **jmp**  | Jump to address                   | 2 | `pc = ('reg' or pc) + imm`            |
-| `1-1011#-##` | **jmpl** | Jump to address (and link)        | 2 | `push(pc, fb), pc = 'reg' + imm`      |
-| `1-1100#-##` | **mst**  | Memory store                      | 2 | `*('sel' + imm) = acc`                |
-| `1-1101#-##` | **mstw** | Memory store (word)               | 2 | `*('sel' + imm) = rx, ry`             |
-| `1-1110#-##` | **mld**  | Memory load                       | 2 | `acc = *('sel' + imm)`                |
-| `1-1111#-##` | **mldw** | Memory load (word)                | 2 | `rx, ry = *('sel' + imm)`             |
+| QCPU 2R      | Short    | Description                        | B | Representation                        |
+|--------------+----------+------------------------------------+---+---------------------------------------|
+| `0-0000-000` | **ret**  | Pull from stack and jump           | 1 | `pc = *fb, fb = *(fb + 1)`            |
+| `0-0000-001` | **nta**  | NOT accumulator                    | 1 | `acc = ~acc`                          |
+| `0-0000-010` | **pcm**  | Propagate carry mode               | 1 | `next carry on condition`             |
+| `0-0000-011` | **lck**  | Interrupt lock (clear interrupt)   | 1 | `I = 0`                               |
+| `0-0000-100` | **ulck** | Interrupt unlock (set interrupt)   | 1 | `I = 1`                               |
+| `0-0000-101` |          |                                    |   |                                       |
+| `0-0000-110` |          |                                    |   |                                       |
+| `0-0000-111` |          |                                    |   |                                       |
+| `0-0001-###` | **imm**  | Load immediate into register       | 2 | `'reg' = imm`                         |
+| `0-0010-###` |          |                                    |   |                                       |
+| `1-0011-###` | **msp**  | Mutate the stack pointer           | 1 | `spt = spt + 'offset' + 1`            |
+| `0-0100-###` | **xch**  | Exchange register and accumulator  | 1 | `'reg' = acc, acc = 'reg'`            |
+| `0-0101-###` | **ast**  | Accumulator store                  | 1 | `acc = 'reg'`                         |
+| `0-0110-###` | **rst**  | Register store                     | 1 | `'reg' = acc`                         |
+| `0-0111-###` | **inc**  | Increment                          | 1 | `'reg' = 'reg' + 1`                   |
+| `0-1000-###` | **dec**  | Decrement                          | 1 | `'reg' = 'reg' - 1`                   |
+| `0-1001-###` | **neg**  | Negate                             | 1 | `'reg' = -'reg'`                      |
+| `0-1010-###` | **rsh**  | Right shift                        | 1 | `'reg' = 'reg' >> 1`                  |
+| `0-1011-###` | **add**  | Addition                           | 1 | `acc = acc + 'reg'`                   |
+| `0-1100-###` | **sub**  | Subtraction                        | 1 | `acc = acc - 'reg'`                   |
+| `0-1101-###` | **ior**  | Bitwise incl. OR (insert bits)     | 1 | `acc = acc IOR 'reg'`                 |
+| `0-1110-###` | **and**  | Bitwise AND (mask/remove bits)     | 1 | `acc = acc AND 'reg'`                 |
+| `0-1111-###` | **xor**  | Bitwise excl. OR (toggle bits)     | 1 | `acc = acc XOR 'reg'`                 |
+| `1-0000-###` | **bsl**  | Barrel shift left                  | 1 | `acc = acc << 'amt'`                  |
+| `1-0001-###` | **bsld** | Barrel shift left (pointer)        | 1 | `acc = acc << 'reg'`                  |
+| `1-0010-###` | **bsr**  | Barrel shift right                 | 1 | `acc = acc >> 'amt'`                  |
+| `1-0011-###` | **bsrd** | Barrel shift right (pointer)       | 1 | `acc = acc >> 'reg'`                  |
+| `1-01-#####` | **sysc** | System call interrupt              | 1 | `push(pc, fb), int('sysc')`           |
+| `0-1000-###` | **push** | Push register + immediate to stack | 2 | `push('reg' + imm)` ra = 0            |
+| `1-1001-###` | **brh**  | Conditionally jump to address      | 2 | `pc = + imm on [delayed] 'condition'` |
+| `1-1010#-##` | **jmp**  | Jump to address                    | 2 | `pc = ('sel' or pc) + imm`            |
+| `1-1011-###` | **jmpl** | Jump to address (and link)         | 2 | `push(pc, fb), pc = + imm`            |
+| `1-1100#-##` | **mst**  | Memory store                       | 2 | `*('sel' + imm) = acc`                |
+| `1-1101#-##` | **mstw** | Memory store (word)                | 2 | `*('sel' + imm) = rx, ry`             |
+| `1-1110#-##` | **mld**  | Memory load                        | 2 | `acc = *('sel' + imm)`                |
+| `1-1111#-##` | **mldw** | Memory load (word)                 | 2 | `rx, ry = *('sel' + imm)`             |
 : {tbl-colwidths=[10,10,35,5,40]}
 :::
+
+| Mapped instructions | Short   | Description     |
+|---------------------+---------+-----------------|
+| `bsl 0`             | **nop** | what you expect |
+| `bsr 0`             | **nop** |                 |
+: {tbl-colwidths=[25,25,50]}
+
+| Flags | Name   | Representation            |
+|-------+--------+---------------------------|
+| `000` | **C**  | `if (unsigned) overflow`  |
+| `001` | **S**  | `if signed`               |
+| `010` | **Z**  | `if acc == 0`             |
+| `011` | **U**  | `if underflow`            |
+| `100` | **!C** | `if !(unsigned) overflow` |
+| `101` | **!S** | `if !signed`              |
+| `110` | **!Z** | `if acc != 0`             |
+| `111` | **!U** | `if !underflow`           |
+: {tbl-colwidths=[25,25,50]}
