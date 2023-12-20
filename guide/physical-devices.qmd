@@ -112,24 +112,29 @@ Interrupts with a lower address have higher priority. An interrupt with address
 predetermined I/O devices give 8 CPU interrupts, mainly for maintenance and
 security:
 
-| address   | name    | description                                                                        |
-|-----------+---------+------------------------------------------------------------------------------------|
-| `####000` | `reset` | reset pin active (highest priority)                                                |
-| `####001` | `lcktl` | interrupt 'locked too long' exception                                              |
-| `####010` |         | reserved                                                                           |
-| `####011` |         | reserved                                                                           |
-| `####100` | `segv`  | on unmapped or unprivileged virtual memory access                                  |
-| `####101` | `cow`   | a memory page is being written to with copy-on-write active                        |
-| `####110` | `mmap`  | a (physical) map request of an I/O device was received                             |
-| `####111` | `systm` | system timer for preemptive multitasking (lowest system priority, higher than I/O) |
+| address   | name    | mask | description                                                                        |
+|-----------+---------+------+------------------------------------------------------------------------------------|
+| `0100000` | `reset` | `1`  | reset pin active (highest priority)                                                |
+| `0100001` | `lcktl` | `1`  | interrupt 'locked too long' exception                                              |
+| `0100010` |         |      | reserved                                                                           |
+| `0100011` |         |      | reserved                                                                           |
+| `0100100` | `segv`  | `0`  | on unmapped or unprivileged virtual memory access                                  |
+| `0100101` | `cow`   | `1`  | a memory page is being written to with copy-on-write active                        |
+| `0100110` | `mmap`  | `0`  | a (physical) map request of an I/O device was received                             |
+| `0100111` | `systm` | `0`  | system timer for preemptive multitasking (lowest system priority, higher than I/O) |
+
+System calls are addressed before the system interrupts. I/O devices are
+addressed after the system interrupts.
 
 An interrupt can come with data depending on the I/O device, which can be read
-from the I/O register file, usually through a device driver.
+from the I/O register file, usually through a device driver. An I/O device can
+include multiple physical I/O devices to save register file space.
 
 Interrupt locks can delay incoming interrupt requests **from 0b0001000 onwards**
-(that is, important system interrupts can still be executed). There's an
-internal clock timer running when the lock is active, and if the lock is high
-for too long[^2], a `lcktl` ('locked too long') interrupt may get thrown.
+(that is, important system interrupts can still be executed in the I/O 0 and 1
+devices, unless the `mask` is 0). There's an internal clock timer running when
+the lock is active, and if the lock is high for too long[^2], a `lcktl` ('locked
+too long') interrupt may get thrown.
 
 [^1]: Feature is currently uncertain.
 [^2]: Timeout of `lcktl` is system dependent.
