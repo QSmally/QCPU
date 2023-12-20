@@ -4,7 +4,10 @@ version: "3"
 services:
   qcpu-documentation:
     restart: always
-    build: .
+    build:
+      context: .
+      args:
+        TAG: "v1.3.450"
     container_name: qcpu-documentation
     volumes:
       - "./nginx/conf.d:/etc/nginx/conf.d:ro"
