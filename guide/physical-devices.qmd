@@ -79,17 +79,12 @@ userspace. It also holds the flags belonging to the segment @arm-architecture
     - Cacheable
     - Readonly
     - Copy-on-write
-1. [unused]
-2. Physical address (l)
-3. Physical address (h)
-
-<!--
-0. Flags
-    - Cacheable
-    - Readonly
-    - Copy-on-write
+    - Executable
 1. Physical address
--->
+
+Currently, the two-byte MMU stride is for a 16 bit physical address[^3].
+
+[^3]: Physical/resolved addresses will be converted to 16 bits rather than 24.
 
 ## I/O: input and output
 
