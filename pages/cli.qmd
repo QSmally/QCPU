@@ -21,7 +21,8 @@ optimisation).
 QCPU CLI's linker combines object files, resolves the reference addresses and
 reorders the sections based on a linker script @gnu-ld. The assembler makes sure
 that addresses are reachable (e.g. relative vs. absolute jumps). In the future,
-GNU `ld` will be used.
+GNU `ld` will be used with the support of the Executable and Linkable Format
+(ELF).
 
 <!--
 ### Compiler
