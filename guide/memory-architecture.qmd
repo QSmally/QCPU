@@ -1,7 +1,7 @@
 ---
 title: "Memory architecture"
 subtitle: "A look into QCPU's memory system"
-description: "QCPU's 16 bit virtual memory, 24 bit physical memory and addressing modes."
+description: "QCPU's 16 bit virtual memory and its addressing modes."
 date: 2023-10-8
 categories: [memory]
 ---

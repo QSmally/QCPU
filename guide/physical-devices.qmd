@@ -14,45 +14,43 @@ another application) and to provide abstraction from the underlying hardware
 @arm-memory-management [chap. 3].
 
 ```
-*----------*             *----------*    *-                   -*
+*----------*             *----------*    +-                   -+
 |          |             |          | ___ I/O 0 'boot' regfile |
-|  64 KiB  |             |  16 MiB  | ___ I/O 1 'dmac' regfile |
-|          |             |          | ___ I/O ... regfile      |
-| virtual  | ___ MMU ___ | physical | ___ I/O 23 regfile       | physical
-| memory   |             | memory   |                          | devices
-|          |             |          | ___ main memory          |
-|          |             |          | ___ (I/O reference)      |
-|          |             |          |                          |
-*----------*             *----------*    *-                   -*
+|  64 KiB  |             |  64 KiB  | ___ I/O 1 'dmac' regfile |
+|          | per-process |          | ___ I/O ... regfile      |
+| virtual  | ___ MMU ___ | physical | ___ I/O 23 regfile       | device
+| memory   |   mapping   | memory   |                          | interface
+|          |             |          | ___ main memory          |   *------------*
+|          |             |          | ___ (I/O references) ___ | _ | persistent |
+|          |             |          |                          |   | storage    |
+*----------*             *----------*    +-                   -+   *------------*
 ```
 
 ## Address alignment
 
 ```
-                  24 bit
-23                          7             0
-|---------------------------|-------------|
-| physical address          | offset      |
-  16 bit                      8 bit
-                              256 byte page size
-
+                16 bit
+15                 7                  0
+|------------------|------------------|
+| physical address | page offset      |
+  8 bit              8 bit
+                     256 byte page size
 ```
 
 A resolved address is the combination of a physical address and an offset
-@arm-memory-management [chap. 5]. In this case, there's a 16 bit physical
+@arm-memory-management [chap. 5]. In this case, there's an 8 bit physical
 address and an 8 bit offset, which means the minimum amount of space per
 physical page is 256 bytes. An offset is left out when passing around physical
 addresses. Memory is allocated in 256 byte blocks. @sec-mmu explains strategies
 for small allocations.
 
 ```
-                  24 bit
-23            15            7             0
-|-------------|-------------|-------------|
-| physical address          | offset      |
-              |-------------|-------------|
-              | virtual address           |
-
+                16 bit
+15                 7                  0
+|------------------|------------------|
+| physical address | page offset      |
+|-------------------------------------|
+| virtual address    offset           |
 ```
 
 A translation of the upper virtual address byte is done to resolve to a 16 bit
@@ -80,11 +78,24 @@ userspace. It also holds the flags belonging to the segment @arm-architecture
     - Readonly
     - Copy-on-write
     - Executable
+    - Reserved
+    - Reserved
+    - Reserved
+    - Dirty
 1. Physical address
 
-Currently, the two-byte MMU stride is for a 16 bit physical address[^3].
+Currently, the two-byte MMU stride is for a 16 bit physical address.
 
-[^3]: Physical/resolved addresses will be converted to 16 bits rather than 24.
+* **Cacheable**: an indication that the data doesn't change outside of write
+  instructions, and can therefore be cached, unlike ever-changing dynamic data
+  provided by I/O regfiles;
+* **Readonly**: a write operation will signal a segmentation fault to the
+  processor;
+* **Copy-on-write**: a write operation will signal a copy-on-write to the
+  processor;
+* **Executable**: a read operation through an execution mode will signal a
+  segmentation fault to the processor;
+* **Dirty**: a read or write triggers a new lookup in physical memory.
 
 ## I/O: input and output
 
@@ -94,7 +105,7 @@ port @arm-memory-management [chap. 3]. Every one of the I/O devices has 4
 interrupt pins each, resulting in 96 total external interrupts. There are 32
 system calls for a grand total of 128 interrupts. It means exactly one page of
 256 bytes are allocated for the interrupt map with a 16 bit address per
-interrupt. The I/O device address range is from `0x000000` to `0x001700` (6.144
+interrupt. The I/O device address range is from `0x0000` to `0x1700` (6.144
 bytes).
 
 Two built-in I/O devices are present in the QCPU microcontroller:
@@ -109,6 +120,7 @@ security:
 
 | address   | name    | mask | description                                                                        |
 |-----------+---------+------+------------------------------------------------------------------------------------|
+| `00#####` | `sysc`  |      | any system call                                                                    |
 | `0100000` | `reset` | `1`  | reset pin active (highest priority)                                                |
 | `0100001` | `lcktl` | `1`  | interrupt 'locked too long' exception                                              |
 | `0100010` |         |      | reserved                                                                           |

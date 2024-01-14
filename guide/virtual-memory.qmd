@@ -9,7 +9,7 @@ categories: [memory, userland]
 Memory is addressed with 16 bits. A segment is the upper byte of that address,
 being 256 bytes. Physical memory is mapped to the userspace's virtual memory.
 In turn, the MMU reads from the map in order to put the link between virtual
-(16 bit) and physical (24 bit) memory.
+(16 bit) and physical (also 16 bit) memory.
 
 ## Address space
 
