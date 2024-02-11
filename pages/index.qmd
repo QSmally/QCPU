@@ -10,7 +10,7 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `0-0000-001` | **nta**  | NOT accumulator                    | 1 | `acc = ~acc`                          |
 | `0-0000-010` | **pcm**  | Propagate carry mode               | 1 | `next carry on condition`             |
 | `0-0000-011` | **dfr**  | Interrupt defer (clear interrupt)  | 1 | `I = 0`                               |
-| `0-0000-100` |          |                                    |   |                                       |
+| `0-0000-100` | **bti**  | Branch target identifier           | 1 | `B = 1`                               |
 | `0-0000-101` |          |                                    |   |                                       |
 | `0-0000-110` |          |                                    |   |                                       |
 | `0-0000-111` |          |                                    |   |                                       |

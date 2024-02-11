@@ -24,3 +24,9 @@ jmp <mode:call,long> sel, .address   ; absolute call
 | `11` | long (absolute), call                         |
 
 ... needing a dynamic address requires a `mldw` proceeded by a `jmp sid`
+
+## Branch Target Identification
+
+... security improvements for dynamic jumps[^1]
+
+[^1]: Feature is set as a flag in the DMAC.
