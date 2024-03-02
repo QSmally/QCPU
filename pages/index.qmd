@@ -11,12 +11,11 @@ subtitle: "QCPU 2CR 5-3-(8) reference"
 | `0-0000-010` | **pcm**  | Propagate carry mode               | 1 | `next carry on condition`             |
 | `0-0000-011` | **dfr**  | Interrupt defer (clear interrupt)  | 1 | `I = 0`                               |
 | `0-0000-100` | **bti**  | Branch target identifier           | 1 | `B = 1`                               |
-| `0-0000-101` |          |                                    |   |                                       |
-| `0-0000-110` |          |                                    |   |                                       |
-| `0-0000-111` |          |                                    |   |                                       |
+| `0-0000-101` |   -      |                                    |   |                                       |
+| `0-0000-110` |   -      |                                    |   |                                       |
+| `0-0000-111` |   -      |                                    |   |                                       |
 | `0-0001-###` | **imm**  | Load immediate into register       | 2 | `'reg' = imm`                         |
-| `0-0010-###` |          |                                    |   |                                       |
-| `1-0011-###` | **msp**  | Mutate the stack pointer           | 1 | `spt = spt + 'offset' + 1`            |
+| `0-001-####` | **msp**  | Mutate the stack pointer           | 1 | `spt = spt + 'offset' +- 1`           |
 | `0-0100-###` | **xch**  | Exchange register and accumulator  | 1 | `'reg' = acc, acc = 'reg'`            |
 | `0-0101-###` | **ast**  | Accumulator store                  | 1 | `acc = 'reg'`                         |
 | `0-0110-###` | **rst**  | Register store                     | 1 | `'reg' = acc`                         |

@@ -65,8 +65,10 @@ sections.
 
 * Entrypoint [`0, 1`],
 * Begin stack [`2, 3`],
-* a [`4, 5`],
-* b [`6, 7`],
-* c [`8, 9`],
-* d [`10, 11`],
-* Unused [`12 - 255`].
+    - Current stack frame [`4, 5`],
+    - Current stack pointer [`6, 7`]
+* Globals/access mode [`8, 9`],
+* Kernel: `kvariable` memory map [`10, 11`],
+* Kernel: `userland` memory map [`12, 13`],
+* Kernel: system call/interrupt map [`14, 15`],
+* Unused [`16 - 255`].
