@@ -1,20 +1,12 @@
 
-// kernel device (io2 ... io15)
+// kernel device (io24...)
 
 @org 0xC000
-@include "boot/constants.s"
-
-@section instance
-
-flags:      0 lsh @real |           ; x/y address modes are virtual
-            1 lsh @ints |           ; enable interrupts
-            1 lsh @inst             ; enable instance ptrs (page 0)
-entrypoint: jmp skg, .kmainpt       ; boot jump text
-                                    ; linker adds globals/pointer map
 
 @section globals
 
-.kmainpt:   u16 .kmain
+.intmappt:  u16 .intmap
+.kvmmappt:  u16 .kvmmap
 
 @section gextension
 @region 256 ; sysc/int map
