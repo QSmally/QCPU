@@ -1,6 +1,6 @@
 ---
 title: "Physical devices"
-description: "Physical mapping, I/O and memory devices"
+description: "Physical mapping, I/O and memory devices."
 date: 2023-12-3
 categories: [memory, addressing, io]
 ---
@@ -14,15 +14,15 @@ another application) and to provide abstraction from the underlying hardware
 @arm-memory-management [chap. 3].
 
 ```
-*----------*             *----------*    +-                   -+
+*----------*             *----------*    +- devices interface -+
 |          |             |          | ___ I/O 0 'boot' regfile |
-|  64 KiB  |             |  64 KiB  | ___ I/O 1 'dmac' regfile |
-|          | per-process |          | ___ I/O ... regfile      |
-| virtual  | ___ MMU ___ | physical | ___ I/O 23 regfile       | device
-| memory   |   mapping   | memory   |                          | interface
+|  64 KiB  |             |  64 KiB  | ___ I/O 1 'dmac' regfile | ___
+|          | per-process |          | ___ I/O ... regfile      |    |
+| virtual  | ___ MMU ___ | physical | ___ I/O 23 regfile       |    |
+| memory   |   mapping   | memory   |                          |    |c
 |          |             |          | ___ main memory          |   *------------*
 |          |             |          | ___ (I/O references) ___ | _ | persistent |
-|          |             |          |                          |   | storage    |
+|          |             |          |                          | d | storage    |
 *----------*             *----------*    +-                   -+   *------------*
 ```
 
@@ -97,7 +97,7 @@ Currently, the two-byte MMU stride is for a 16 bit physical address.
   segmentation fault to the processor;
 * **Dirty**: a read or write triggers a new lookup in physical memory.
 
-## I/O: input and output
+## I/O: input and output {#sec-io}
 
 There are 24 total pages mapped to I/O devices. Each page is a 256 byte register
 file to communicate with the device, and the rest is managed by the main memory

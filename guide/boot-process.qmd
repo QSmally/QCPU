@@ -1,0 +1,72 @@
+---
+title: "Boot process"
+description: "A CPU's first steps and different execution modes."
+date: 2024-02-4
+categories: [memory, control-flow]
+---
+
+Similarly to x86's unprotected and protected control modes, QCPU is able to run in two different
+execution modes: direct and exec @control-methods. A 'direct' execution mode turns off the virtual
+memory system and starts up differently than the 'exec' mode. Each have their benefit. For simple,
+non-operating system programs, the 'direct' execution mode can be used to remove the overhead of
+loading in the kernel, reduce the response time of the program, amongst other tasks
+@intel-64-ia32 [chap. 3.1].
+
+## Physical memory layout
+
+Section 'I/O' of the 'Physical devices' chapter mentions the initial physical memory pages that are
+used by the configuration. There are 24 total pages mapped to I/O devices, which are all 256 byte
+register files to communicate with their respective devices. The 232 rest pages are managed by the
+main memory port @arm-memory-management [chap. 3].
+
+Two built-in I/O devices are present in the QCPU microcontroller's physical memory:
+
+* `Boot` sector ROM device [`0`],
+* `DMAC` device [`1`].
+
+```
+0                             23 24                 255
+[ boot | dmac | ... devices ... | ... main memory ... ]
+               v   v             v
+example:       tty storage       kernel
+                   controller
+```
+[^1]
+
+The start-up content and behaviour of the 'boot' sector device differs between the two processor
+execution modes explained in both @sec-direct and @sec-exec.
+
+[^1]: Storage controller may be integrated into the 'DMAC' device for memory references
+
+### Execution mode: 'direct' {#sec-direct}
+
+In direct mode, the virtual memory system maps each address to the same physical memory address.
+Kernel mode restrictions are disabled. The virtual memory essentially functions as a 'linear'
+address map compared to the three-step map process (`kfixed`, `kvariable` and `userland`).
+
+The boot sector is an 'instance' page in direct mode, and QCPU will jump directly to the
+`entrypoint` address provided in the instance page. @sec-instance describes the memory layout of
+the instance page.
+
+### Execution mode: 'exec' {#sec-exec}
+
+In exec mode, upon booting, the microcontroller loads physical page zero at the `kfixed` region and
+jumps to the entrypoint given in the instance page (which is the 'boot' sector device). The CPU
+begins in kernel mode. An entrypoint program (like a bootloader, to later expand to a kernel when
+it's loaded from a persistent storage device) is expected to be loaded at the address of the
+entrypoint.
+
+### 'Instance' page {#sec-instance}
+
+An 'instance' page registers which addresses to use for a userspace application. Like an entrypoint
+address, address for a stack, and addresses for the memory access modes, they configure QCPU's
+memory layout. Typically, in exec mode, the instance page is also used for both userland and kernel
+sections.
+
+* Entrypoint [`0, 1`],
+* Begin stack [`2, 3`],
+* a [`4, 5`],
+* b [`6, 7`],
+* c [`8, 9`],
+* d [`10, 11`],
+* Unused [`12 - 255`].
