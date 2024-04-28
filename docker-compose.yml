@@ -1,16 +1,30 @@
 
-version: "3"
+version: "3.5"
 
 services:
-  qcpu-documentation:
+  qcpu-qsmally-org:
     restart: always
     build:
       context: .
       args:
         TAG: "v1.3.450"
-    container_name: qcpu-documentation
+    container_name: qcpu-qsmally-org
+    image: qcpu-qsmally-org
     volumes:
       - "./nginx/conf.d:/etc/nginx/conf.d:ro"
       - "./:/Content"
-    ports:
-      - 80:80
+    environment:
+      - VIRTUAL_HOST=qcpu.qsmally.org
+      - VIRTUAL_NETWORK=nginx
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_HOST=qcpu.qsmally.org
+      - LETSENCRYPT_EMAIL=info@qbot.eu
+    networks:
+      - default
+      - qcpu-network-bridge
+    # ports:
+    #   - 80:80
+
+networks:
+  qcpu-network-bridge:
+    name: qcpu-network-bridge
