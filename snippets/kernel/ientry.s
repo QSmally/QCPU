@@ -35,8 +35,9 @@ ientry:     bsl 1                   ; interrupt *2 because 16 bit handler addr
             ast rd
             mst sf,     @so + 3
 
-            addi,       -@last_sysc ; skip rx/ry/rz if in sysc range
-            brh s,      .iload
+            ast ra                  ; skip rx/ry/rz if in sysc range
+            addi,       -@last_sysc
+            brh s,      .handle
 
             ast rx
             mst sf,     @so + 4
@@ -45,7 +46,6 @@ ientry:     bsl 1                   ; interrupt *2 because 16 bit handler addr
             ast rz
             mst sf,     @so + 6
 
-.iload:     ast ra                  ; load interrupt service routine
+.handle:    ast ra                  ; load interrupt service routine
             mld n',     .imap
-
             jmp,        0x0000      ; pipe address to jump
