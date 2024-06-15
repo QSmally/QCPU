@@ -11,8 +11,6 @@ website:
   navbar:
     left:
       - pages/index.qmd
-      - pages/layout.qmd
-      - pages/kernel.qmd
       - pages/cli.qmd
     right:
       - text: Guide
@@ -27,6 +25,7 @@ format:
     code-copy: true
     minimal: true
     page-layout: article
+    number-sections: true
     theme:
       light: yeti
       dark: cyborg

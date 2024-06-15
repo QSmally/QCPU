@@ -12,3 +12,10 @@ thead, tbody, tfoot, tr, td, th {
 code {
     background-color: inherit !important;
 }
+
+.instruction-set {
+    min-width: 1250px;
+    overflow-x: scroll;
+    padding-left: 5vw;
+    padding-right: 5vw;
+}
