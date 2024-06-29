@@ -5,27 +5,61 @@ date: 2023-10-14
 categories: [memory, addressing]
 ---
 
-...
+There are a handful of instructions which (conditionally) allows the programmer to set the
+instruction pointer to a static or runtime-dynamic address.
 
-- relative jump/... (also used for branch)
-- absolute jump/call, two step
+## Jumps
+
+There are three types of jump instructions used in various scenarios:
+
+* `1-1011-00-#` `jmp`: jumps to an absolute address (3 bytes)
+* `1-1011-01-#` `jmpr`: jumps to a relative offset (2 bytes)
+* `1-1011-10-#` `jmpd`: jumps to a dynamic address (1 byte)
+
+Each jump instruction can be callable, which is done by setting the LSB to 1, indicated by a `l`
+character in the assembly (like memory instructions would add a `'` for a dynamic offset):
 
 ```{.asm}
-jmp <mode> sel, +24                  ; relative jump +24
-jmp <mode:long> sel, .address        ; absolute jump to ptr at global .address
-jmp <mode:call,long> sel, .address   ; absolute call
+.func:      ...               ; subroutine...
+            ret               ; return from subroutine
+
+main:       jmprl       .func ; assembler calculates relative offset
 ```
 
-| mode | description                                   |
-|------+-----------------------------------------------|
-| `00` | short (relative), jump (mode used for branch) |
-| `01` | short (relative), call (maybe not used?)      |
-| `10` | long (absolute), jump (get directive)         |
-| `11` | long (absolute), call                         |
+### Dynamic addresses
 
-... needing a dynamic address requires a `mldw` proceeded by a `jmp sid`
+Sometimes, an address is present in memory (like a switch table) or argument registers (like a
+callback argument) and a jump must be performed to that address. The `jmpd` instruction 
 
-## Branch Target Identification
+Because dynamic addressing may change, the BTB (explained in @sec-btb) compares the speculation
+address versus actual address and recovers/invalidates if necessary when a BTB hit was found.
+
+## Branches
+
+A branch is a non-callable, relative, conditional jump with the synopsys `1-100-T-###` `brh` (2
+bytes), where bit `T` is whether the jump should be taken when uncertain (only on BTB hit). The
+3 bit condition is either the following:
+
+* `C` - carry out
+* `S` - sign bit (MSB)
+* `Z` - zero
+* `U` - underflow
+* `!C` - not carry out
+* `!S` - not sign bit (MSB)
+* `!Z` - not zero
+* `!U` - not underflow
+
+## Fetch security and optimisations
+
+### Instruction scanning
+
+... incoming cache page, prefetch new instruction page
+
+### Branch Target Buffer {#sec-btb}
+
+... store source/destination addresses of jumps
+
+### Branch Target Identification
 
 ... security improvements for dynamic jumps[^1]
 

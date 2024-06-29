@@ -3,5 +3,5 @@
 
 @section text
 
-main:       imm rx, 0
-            sysc @exit
+main:       imm   rx    0
+            sysc  @exit

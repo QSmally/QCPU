@@ -1,8 +1,8 @@
 
 // QCPU 2 assembly syntax snippet
 
-; this define would be from @include "kernel/sysc.s"
-; a kext may also be from @include "kernel/kernel.s"
+; this define would be from @symbols "kernel/sysc.s"
+; a kext may also be from @symbols "kernel/kernel.s"
 @define fopen 0x05
 @define mmap 0x07
 
@@ -24,15 +24,15 @@
 
 @section text ; readonly, executable
 
-main:       imm  rx,    .path       ; 'main' must be a public label for linking
-            imm  ry,    .path'u     ; upper byte syntax 'u, for u8 implicitly 'l
-            imm  rz,    0b00000000  ; fopen mask
-            sysc @fopen             ; fopen(pathl, pathh, msk) -> (,, fd)
-            imm  rx,    0x00        ; size low byte
-            imm  ry,    0x04        ; size high byte, 1024
-            sysc @mmap              ; mmap(sizel, sizeh, fd) -> (addrl, addrh)
-            msp,        0x00002
-            ast rx
-            ast ry
-            mstw sp,    -2          ; store at recently allocated stack location
-.spinlock:  jmpr,       0x0000      ; execs should end with sysc, jmp or ret
+main:       imm   rx    .path       ; 'main' must be a public label for linking
+            imm   ry    .path'u     ; upper byte syntax 'u, for u8 implicitly 'l
+            imm   rz    0b00000000  ; fopen mask
+            sysc  @fopen            ; fopen(pathl, pathh, msk) -> (,, fd)
+            imm   rx    0x00        ; size low byte
+            imm   ry    0x04        ; size high byte, 1024
+            sysc  @mmap             ; mmap(sizel, sizeh, fd) -> (addrl, addrh)
+            msp         0x0002
+            ast   rx
+            ast   ry
+            mstw  sp    -2          ; store at recently allocated stack location
+.spinlock:  jmpr        .spinlock   ; execs should end with sysc @exit, not lock

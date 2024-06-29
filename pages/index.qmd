@@ -1,51 +1,57 @@
 ---
 title: "Instruction set"
-subtitle: "QCPU 2 5-3-(8/16) reference (37 instr.)"
+subtitle: "QCPU 2 5-3-(8/16) reference"
 ---
 
 ::: {.instruction-set .column-screen}
-| QCPU 2        | Short    | Description                         | B | Representation                                   | Notes                                                    |
-|---------------+----------+-------------------------------------+---+--------------------------------------------------+----------------------------------------------------------|
-| `0-0000-000`  | **ret**  | Pull from stack and jump            | 1 | pcl, pch = \*2(sf); sfl, sfh = \*2(sf + 2)       | takes 4 memory reads, stalls                             |
-| `0-0000-001`  | **msp**  | Mutate stack pointer                | 3 | sf += amount                                     |                                                          |
-| `0-0000-010`  | **nta**  | NOT accumulator                     | 1 | acc = !acc                                       |                                                          |
-| `0-0000-011`  |          |                                     |   |                                                  |                                                          |
-| `0-0000-100`  |          |                                     |   |                                                  |                                                          |
-| `0-0000-101`  |          |                                     |   |                                                  |                                                          |
-| `0-0000-110`  |          |                                     |   |                                                  |                                                          |
-| `0-0000-111`  |          |                                     |   |                                                  |                                                          |
-| `0-0001-###`  | **ast**  | Accumulator store                   | 1 | acc = *reg*                                      | zr -> clear acc (**clr**)                                |
-| `0-0010-###`  | **xch**  | Accumulator exchange with register  | 1 | acc = *reg*/*reg* = acc                          | zr -> clear acc                                          |
-| `0-0011-###`  | **stg**  | Accumulator stage for writeback     | 1 | acc = *reg*; ... *reg* = acc                     | stg rx, add ry (rx += ry); stg rx, bsl 2 (rx *= 4)       |
-| `0-0100-###`  | **rst**  | Register store                      | 1 | *reg* = acc                                      | zr -> no operation (**nop**)                             |
-| `0-0101-###`  | **inc**  | Increment register                  | 1 | *reg* += 1                                       | zr -> acc                                                |
-| `0-0110-###`  | **dec**  | Decrement regsiter                  | 1 | *reg* -= 1                                       | zr -> acc                                                |
-| `0-0111-###`  | **neg**  | Negate register                     | 1 | *reg* = -*reg*                                   | zr -> acc                                                |
-| `0-1000-###`  | **rsh**  | Right shift register                | 1 | *reg* >>> 1                                      | zr -> acc                                                |
-| `0-1001-###`  | **add**  | Addition                            | 1 | acc += *reg*                                     | zr -> acc ADD imm (**addi**)                             |
-| `0-1010-###`  | **addc** | Addition with carry propagation     | 1 | acc += *reg* + 1 if carry                        | carry flag taken 2 instructions before                   |
-| `0-1011-###`  | **sub**  | Subtraction                         | 1 | acc -= *reg*                                     | zr -> void???                                            |
-| `0-1100-###`  | **subb** | Subtraction with borrow             | 1 | acc -= *reg* - 1 if !carry                       | carry flag taken 2 instructions before                   |
-| `0-1101-###`  | **ior**  | Bitwise incl. OR (insert bits)      | 1 | acc \|= *reg*                                    | zr -> acc IOR imm (**iori**)                             |
-| `0-1110-###`  | **and**  | Bitwise AND (mask/remove bits)      | 1 | acc &= *reg*                                     | zr -> acc AND imm (**andi**)                             |
-| `0-1111-###`  | **xor**  | Bitwise excl. OR (toggle bits)      | 1 | acc ^= *reg*                                     | zr -> acc XOR imm (**xori**)                             |
-| `1-0000-###`  | **bsl**  | Barrel shift left                   | 1 | acc <<= *amount*                                 | zr -> void???                                            |
-| `1-0001-###`  | **bsld** | Barrel shift left by pointer        | 1 | acc <<= *reg*                                    | zr -> void???                                            |
-| `1-0010-###`  | **bsr**  | Barrel shift right                  | 1 | acc >>= *amount*                                 | zr -> void???                                            |
-| `1-0011-###`  | **bsrd** | Barrel shift right by pointer       | 1 | acc >>= *reg*                                    | zr -> void???                                            |
-| `1-01-#####`  | **sysc** | System call interrupt               | 1 | int(*sysc*)                                      | interrupt performs link                                  |
-| `1-1000-###`  |          | Reserved                            |   |                                                  |                                                          |
-| `1-1001-###`  | **imm**  | Immediate                           | 2 | *reg* = imm                                      | zr -> only acc                                           |
-| `1-1010-###`  | **brh**  | Conditionally jump to address       | 2 | pc += signed offset on condition                 | relative jump on condition                               |
-| `1-101100-#`  | **jmpr** | Jump to relative address (and link) | 2 | pc += signed offset[; sf = sp; push(pc, sf[-1])] | relative jump                                            |
-| `1-101101-#`  | **jmp**  | Jump to address (and link)          | 3 | pc = acc[-1], acc[; sf = sp; push(pc, sf[-1])]   | absolute jump with accumulator offset                    |
-| `1-10111-#-#` | **prf**  | Prefetch instruction/data cache     | 3 | \*(imm [+ acc])                                  | 0: instruction 1: data, 0: only static 1: dynamic offset |
-| `1-1100-#-##` | **mst**  | Memory store                        | 3 | \*(*selector* + imm [+ acc]) = acc[-1]           | ast rl, [ast ri,] mstw, o1, o2                           |
-| `1-1101-#-##` | **mstw** | Memory store word                   | 3 | \*2(*selector* + imm [+ acc]) = acc[-1], acc[-2] | ast rl, ast rh, [ast ri,] mstw, o1, o2                   |
-| `1-1110-#-##` | **mld**  | Memory load                         | 3 | acc[1] = \*(*selector* + imm [+ acc])            | [ast ri,] mld, o1, o2, rst rl                            |
-| `1-1111-#-##` | **mldw** | Memory load word                    | 3 | acc[2], acc[1] = \*2(*selector* + imm [+ acc])   | [ast ri,] mldw, o1, o2, rst rl, rst rh                   |
+| QCPU 2        | Short    | Description                         | B | Representation                                   | Notes                                                      |
+|---------------+----------+-------------------------------------+---+--------------------------------------------------+------------------------------------------------------------|
+| `0-0000-000`  | **ret**  | Pull from stack and jump            | 1 | pcl, pch = \*2(sf); sfl, sfh = \*2(sf + 2)       | takes 4 memory reads, stalls                               |
+| `0-0000-001`  | **msp**  | Mutate stack pointer                | 3 | sf += amount                                     | restore acc?                                               |
+| `0-0000-010`  | **nta**  | NOT accumulator                     | 1 | acc = !acc                                       |                                                            |
+| `0-0000-011`  |          | Reserved                            |   |                                                  |                                                            |
+| `0-0000-100`  |          | Reserved                            |   |                                                  |                                                            |
+| `0-0000-101`  |          | Reserved                            |   |                                                  |                                                            |
+| `0-0000-110`  |          | Reserved                            |   |                                                  |                                                            |
+| `0-0000-111`  |          | Reserved                            |   |                                                  |                                                            |
+| `0-0001-###`  | **ast**  | Accumulator store                   | 1 | acc = *reg*                                      | zr -> clear acc (**clr**)                                  |
+| `0-0010-###`  | **xch**  | Accumulator exchange with register  | 1 | acc = *reg*/*reg* = acc                          | zr -> clear acc                                            |
+| `0-0011-###`  | **stg**  | Accumulator stage for writeback     | 1 | acc = *reg*; ...; *reg* = acc                    | stg rx, add ry (rx += ry); stg rx, bsl 2 (rx *= 4)         |
+| `0-0100-###`  | **rst**  | Register store                      | 1 | *reg* = acc                                      | zr -> no operation (**nop**)                               |
+| `0-0101-###`  | **inc**  | Increment register                  | 1 | *reg* += 1                                       | zr -> acc                                                  |
+| `0-0110-###`  | **dec**  | Decrement regsiter                  | 1 | *reg* -= 1                                       | zr -> acc                                                  |
+| `0-0111-###`  | **neg**  | Negate register                     | 1 | *reg* = -*reg*                                   | zr -> acc                                                  |
+| `0-1000-###`  | **rsh**  | Right shift register                | 1 | *reg* >>= 1                                      | zr -> acc                                                  |
+| `0-1001-###`  | **add**  | Addition                            | 1 | acc += *reg*                                     | zr -> acc add imm (**addi**)                               |
+| `0-1010-###`  | **addc** | Addition with carry propagation     | 1 | acc += *reg* + 1 if carry                        | zr -> only carry, carry flag taken 2 instructions before   |
+| `0-1011-###`  | **sub**  | Subtraction                         | 1 | acc -= *reg*                                     | zr -> ?                                                    |
+| `0-1100-###`  | **subb** | Subtraction with borrow             | 1 | acc -= *reg* - 1 if !carry                       | zr -> flood B side, carry flag taken 2 instructions before |
+| `0-1101-###`  | **ior**  | Bitwise incl. OR (insert bits)      | 1 | acc \|= *reg*                                    | zr -> acc ior imm (**iori**)                               |
+| `0-1110-###`  | **and**  | Bitwise AND (mask/remove bits)      | 1 | acc &= *reg*                                     | zr -> acc and imm (**andi**)                               |
+| `0-1111-###`  | **xor**  | Bitwise excl. OR (toggle bits)      | 1 | acc ^= *reg*                                     | zr -> acc xor imm (**xori**)                               |
+| `1-0000-###`  | **bsl**  | Barrel shift left                   | 1 | acc <<= *amount*                                 | zr -> ?                                                    |
+| `1-0001-###`  | **bsld** | Barrel shift left by pointer        | 1 | acc <<= *reg*                                    | zr -> ?                                                    |
+| `1-0010-###`  | **bsr**  | Barrel shift right                  | 1 | acc >>= *amount*                                 | zr -> ?                                                    |
+| `1-0011-###`  | **bsrd** | Barrel shift right by pointer       | 1 | acc >>= *reg*                                    | zr -> ?                                                    |
+| `1-01-#####`  | **sysc** | System call interrupt               | 1 | int(*sysc*)                                      | interrupt performs link on kernel stack                    |
+| `1-100-#-###` | **brh**  | Conditionally jump to address       | 2 | pc += signed offset on condition/predict T       | relative jump on condition/predict taken T                 |
+| `1-1010-###`  | **imm**  | Immediate                           | 2 | *reg* = imm                                      | zr -> only acc                                             |
+| `1-1011-00-#` | **jmp**  | Jump to address (and link)          | 3 | pc = imm[; sf = sp; push(pc, sf[-1])]            | absolute jump                                              |
+| `1-1011-01-#` | **jmpr** | Jump to relative address (and link) | 2 | pc += signed offset[; sf = sp; push(pc, sf[-1])] | relative jump                                              |
+| `1-1011-10-#` | **jmpd** | Jump to dynamic address (and link)  | 1 | pc = acc[; sf = sp; push(pc, sf[-1])]            | absolute jump from accumulator                             |
+| `1-1011-11-#` | **prf**  | Prefetch data cache                 | 3 | \*(imm [+ acc])                                  | 0: only static 1: dynamic offset                           |
+| `1-1100-#-##` | **mst**  | Memory store                        | 3 | \*(*selector* + imm [+ acc]) = acc[-1]           | ast rl, [ast ri,] mst, o1, o2                              |
+| `1-1101-#-##` | **mstw** | Memory store word                   | 3 | \*2(*selector* + imm [+ acc]) = acc[-1], acc[-2] | ast rl, ast rh, [ast ri,] mstw, o1, o2                     |
+| `1-1110-#-##` | **mld**  | Memory load                         | 3 | acc[1] = \*(*selector* + imm [+ acc])            | [ast ri,] mld, o1, o2, rst rl                              |
+| `1-1111-#-##` | **mldw** | Memory load word                    | 3 | acc[2], acc[1] = \*2(*selector* + imm [+ acc])   | [ast ri,] mldw, o1, o2, rst rl, rst rh                     |
 : {tbl-colwidths=[10,5,20,5,20,20]}
 :::
+
+<!--
+
+these must still be transformed into 'guides':
+
+-->
 
 <!--
 
@@ -76,19 +82,10 @@ subtitle: "QCPU 2 5-3-(8/16) reference (37 instr.)"
 
 <!--
 
-msp should recover accumulator
-
--->
-
-<!--
-
 mst, <absolute address>
 mst idx, <absolute/offset address>  -- index-reg
 mst sf, <offset address>            -- stack-frame
 mst sp, <offset address>            -- top-of-stack
-
-for dynamic offset, needs to use some kind of offset adder (cannot use alu)
-also for return to get 4 incremented addresses sequentially
 
 -->
 
@@ -99,9 +96,17 @@ barrel rotation (5 bytes)
     bsl 2   -- top 6 bits in acc
     xch ra  -- original
     bsr 6   -- bottom 2 bits in acc
-    ior ra
+    ior ra  -- rotation in acc
 
-16 bit barrel operation:
+16 bit barrel operation (8 bytes)
+    ast ra
+    bsl 2   -- top 6 bits in acc for low byte
+    xch ra  -- original low byte in acc, low byte in ra
+    bsr 6   -- bottom 2 bits in acc for shift into high byte
+    xch rb  -- high byte in acc, transfer bits in rb
+    bsl 2   -- top 6 bits in acc for high byte
+    ior rb  -- insert low byte bits into high byte
+    rst rb  -- full high byte in rb
 
 -->
 

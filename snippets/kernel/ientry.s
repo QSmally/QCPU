@@ -22,30 +22,27 @@ imap:
 ;  - accumulator
 @define so 6
 
-ientry:     bsl 1                   ; interrupt *2 because 16 bit handler addr
-            prf i d,    .imap
+ientry:     bsl   1                 ; interrupt *2 because 16 bit handler addr
+            prf'        .imap       ; prefetch imap table
 
-            msp,        7           ; adds 7 to stack ptr, recovers acc
-            xch ra                  ; ra = interrupt identifier
-            mst sf,     @so + 0
-            ast rb
-            mst sf,     @so + 1
-            ast rc
-            mst sf,     @so + 2
-            ast rd
-            mst sf,     @so + 3
+            msp         7           ; adds 7 to stack ptr, recovers acc
+            xch   ra                ; ra = interrupt identifier
+            ast   rb
+            mstw  sf    @so + 0
+            ast   rc
+            ast   rd
+            mstw  sf    @so + 2
 
-            ast ra                  ; skip rx/ry/rz if in sysc range
-            addi,       -@last_sysc
-            brh s,      .handle
+            ast   ra                ; skip rx/ry/rz if in sysc range
+            addi        -@last_sysc
+            brh   s     .handle
 
-            ast rx
-            mst sf,     @so + 4
-            ast ry
-            mst sf,     @so + 5
-            ast rz
-            mst sf,     @so + 6
+            ast   rx
+            ast   ry
+            mstw  sf    @so + 4
+            ast   rz
+            mst   sf    @so + 6
 
-.handle:    ast ra                  ; load interrupt service routine
-            mld n',     .imap
-            jmp,        0x0000      ; pipe address to jump
+.handle:    ast   ra                ; load interrupt service routine
+            mldw' n     .imap
+            jmpd                    ; pipe address to jump

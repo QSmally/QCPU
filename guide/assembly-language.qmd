@@ -23,7 +23,7 @@ An assembler can read directives from the QCPU assembly file. Each directive
 starts with an `@` symbol and don't represent any size in the assembly (except
 for an `@include` or the result of such a directive).
 
-- `@include <file>`: include a file, conventionally for ABI interfaces
+- `@symbols <file>`: include the symbol definitions of a file, for ABI interfaces
 - `@org <address>`: marks the linker offset (`--offset <address>` in `qcpul`)
 - `@define <name> <value>`: a C preprocessor-like define
 - `@define <namespace>`: a collection of definitions
@@ -85,6 +85,19 @@ A couple of special pseudo-instructions manage the encoding of data:
 - `reserve`: uninitialised amount of data
 
 See the instruction set page for a reference.
+
+### Types
+
+```{.asm}
+@section globals
+    .queue      @queue(24)              ; macro 'queue' structure
+    .queuep     @queuep(queuec)
+
+@section gextension
+    .queuec     @queuec(24)
+```
+
+### Inline data
 
 A comma between the first operand (that resides in the instruction) and its
 secondary byte (such as an offset) is short for having a newline and `u8 ...`.

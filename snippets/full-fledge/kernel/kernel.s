@@ -1,32 +1,17 @@
 
-// kernel device (io24...)
-
-@org 0xC000
+// kernel device (io24 ... io216)
 
 @section globals
 
-.intmappt:  u16 .intmap
-.kvmmappt:  u16 .kvmmap
+@region 32 ; kvariable mmap
 
-@section gextension
-@region 256 ; sysc/int map
-
-.intmap:
-            u16 .syscexit ; 0
-
-@end
-@region 256 ; kvariable mmap
-
-.kvmmap:
-            u16 0x00 0x10 ; io16
+kvmmap:
+            u16 @/ulmmap
+            reserve u16 15
 
 @end
 
 @section text
 
-.kmain:     imm  rx, 0x00           ; userland offset
-            imm  ry, 0x00
-            mldw sid, 1             ; load entrypoint
-            jmp  sid, 0x00          ; call to main
-
-.syscexit:  jmp  rel, .syscexit     ; deadlock
+kmain:      mldw  n     0x00 0x00   ; load entrypoint, byte 0 of instance
+            jmpd                    ; call to main
