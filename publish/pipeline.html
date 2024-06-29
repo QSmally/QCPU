@@ -1,0 +1,89 @@
+
+<!-- Transform tables into grids into pipeline diagrams -->
+<!-- Copyleft © 2024 Joey Smalen -->
+<!-- 06 2024 -->
+
+<style>
+.pipeline {
+    overflow-x: scroll;
+}
+
+.pipeline td {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    margin: .5px;
+    padding: 4px;
+    width: 96px;
+    height: 64px;
+
+    font-weight: 600;
+    font-size: 85%;
+    text-align: center;
+    color: #232;
+}
+</style>
+
+<script>
+function colourOf(column) {
+    switch (column) {
+        case 0: return "#7bc6b8"; // green
+        case 1: return "#2cb097";
+        case 2: return "#63b1e5"; // blue
+        case 3: return "#0094b3";
+        case 4: return "#c90d35"; // red
+        case 5: return "#ef5590"; // magenta
+        default:
+            return "none";
+    }
+}
+
+function pipelineTable(pipeline) {
+    const table = pipeline.getElementsByTagName("table")[0];
+    if (!table) return;
+
+    const tbody = table.getElementsByTagName("tbody")[0];
+    if (!tbody) return;
+
+    const thead = table.getElementsByTagName("thead")[0];
+    if (thead) table.removeChild(thead);
+    table.classList.remove("table");
+
+    const rows = tbody.children.length;
+    const columns = tbody.children[0].children.length;
+    const width = columns + rows - 1;
+
+    tbody.style.setProperty("display", "inline-grid");
+    tbody.style.setProperty("grid-template-columns", `repeat(${width}, ${width}fr)`);
+
+    const olds = [];
+    const news = [];
+
+    for (let i = 0, row; row = tbody.children[i]; i++) {
+        for (let j = 0, col; col = row.children[j]; j++) {
+            const container = document.createElement("td");
+            container.style.setProperty("background", colourOf(j));
+            container.style.setProperty("grid-column", `${i + j + 1}`);
+            container.style.setProperty("grid-row", `${i + 1}`);
+
+            const text = document.createElement("span");
+            text.innerHTML = col.innerHTML;
+            container.appendChild(text);
+
+            news.push(container);
+        }
+        olds.push(row);
+    }
+
+    for (const remove of olds)
+        tbody.removeChild(remove);
+    for (const add of news)
+        tbody.appendChild(add);
+}
+
+const pipelines = document.getElementsByClassName("pipeline");
+
+for (const pipeline of pipelines)
+    pipelineTable(pipeline);
+</script>

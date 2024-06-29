@@ -26,6 +26,8 @@ format:
     minimal: true
     page-layout: article
     number-sections: true
+    include-after-body:
+      file: publish/pipeline.html
     theme:
       light: yeti
       dark: cyborg

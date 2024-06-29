@@ -138,6 +138,12 @@ barrel rotation (5 bytes)
 | `111` | **!U** | `if !underflow`           |
 : {tbl-colwidths=[25,10,65]}
 
+::: {.pipeline}
+| fetch   | fetch   | decode   | decode   | execute | writeback |
+|---------+---------+----------+----------+---------+-----------|
+| Fetch 1 | Fetch 2 | Decode 1 | Decode 2 | Execute | Writeback |
+:::
+
 ::: {.callout-note}
 **rl**/**rh** can be any low/high general-purpose register set
 
