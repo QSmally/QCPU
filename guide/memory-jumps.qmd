@@ -1,20 +1,36 @@
 ---
 title: "Jumps and branches"
 description: "Efficiently moving the instruction pointer(s) around."
-date: 2023-10-14
+date: 2024-06-20
 categories: [memory, addressing]
 ---
 
 There are a handful of instructions which (conditionally) allows the programmer to set the
 instruction pointer to a static or runtime-dynamic address.
 
-## Jumps
+## Jumps {#sec-jumps}
 
 There are three types of jump instructions used in various scenarios:
 
 * `1-1011-00-#` `jmp`: jumps to an absolute address (3 bytes)
 * `1-1011-01-#` `jmpr`: jumps to a relative offset (2 bytes)
 * `1-1011-10-#` `jmpd`: jumps to a dynamic address (1 byte)
+
+A pipeline diagram (for `jmp` in this case) is shown below. For a relative jump (`jmpr`), a two byte
+instruction is used instead of three bytes and the offset is calculated based on the instruction
+pointer value at the address of the first jump instruction byte.
+
+::: {.pipeline}
+| fetch                   | fetch         | decode          | decode         | execute | writeback                        |
+|-------------------------+---------------+-----------------+----------------+---------+----------------------------------|
+| `jmp`                   | btb hit known |                 |                |         | jumped if btb miss, write to btb |
+| low byte                |               | low byte shift  | low byte ready |         | invalidate instr.                |
+| high byte or btb instr. |               | high byte ready |                |         | invalidate instr. if btb miss    |
+| btb instr. + 1          |               |                 |                |         | invalidate instr. if btb miss    |
+| btb instr. + 2          |               |                 |                |         | invalidate instr. if btb miss    |
+| btb instr. + 3 or jump  |               |                 |                |         |                                  |
+
+:::
 
 Each jump instruction can be callable, which is done by setting the LSB to 1, indicated by a `l`
 character in the assembly (like memory instructions would add a `'` for a dynamic offset):
@@ -26,13 +42,32 @@ character in the assembly (like memory instructions would add a `'` for a dynami
 main:       jmprl       .func ; assembler calculates relative offset
 ```
 
+::: {.pipeline}
+| fetch                   | fetch         | decode     | decode          | execute               | writeback                  |
+|-------------------------+---------------+------------+-----------------+-----------------------+----------------------------|
+| `jmpl`                  | btb hit known | load `spl` | load copy `sfl` | add 4 to `spl`        | ..., memory low byte ready |
+| low byte                |               | load `sph` | load copy `sfh` | addition, prop. carry | memory high byte ready     |
+| high byte or btb instr. |               |            |                 |                       |                            |
+
+:::
+
 ### Dynamic addresses
 
 Sometimes, an address is present in memory (like a switch table) or argument registers (like a
-callback argument) and a jump must be performed to that address. The `jmpd` instruction 
+callback argument) and a jump must be performed to that address. The `jmpd` instruction provides
+this dynamic functionality by piping the last two accumulator writes into the instruction pointer.
 
 Because dynamic addressing may change, the BTB (explained in @sec-btb) compares the speculation
 address versus actual address and recovers/invalidates if necessary when a BTB hit was found.
+
+::: {.pipeline}
+| fetch    | fetch         | decode    | decode | execute                   | writeback                             |
+|----------+---------------+-----------+--------+---------------------------+---------------------------------------|
+| `ast ra` |               | load `ra` |        |                           | written to acc                        |
+| `ast rb` |               | load `rb` |        |                           | written to acc                        |
+| `jmpd`   | btb hit known |           |        | compare target vs. actual | jumped if btb miss or invalid address |
+
+:::
 
 ## Branches
 
@@ -49,18 +84,94 @@ bytes), where bit `T` is whether the jump should be taken when uncertain (only o
 * `!Z` - not zero
 * `!U` - not underflow
 
+::: {.pipeline}
+| fetch                                 | fetch         | decode | decode                                            | execute                               | writeback                            |
+|---------------------------------------+---------------+--------+---------------------------------------------------+---------------------------------------+--------------------------------------|
+| `brh c`                               | btb hit known |        |                                                   | recovery ready for taken -> not taken | jumped if mispredicted, write to btb |
+| signed offset                         |               |        | perform offset, ready for not taken -> taken jump |                                       | invalidate instr.                    |
+| btb hit and T, btb miss or !T         |               |        |                                                   |                                       | invalidate instr. if mispredicted    |
+| taken + 1 or not taken + 1            |               |        |                                                   |                                       | invalidate instr. if mispredicted    |
+| taken + 2 or not taken + 2            |               |        |                                                   |                                       | invalidate instr. if mispredicted    |
+| taken + 3 or not taken + 3 or recover |               |        |                                                   |                                       |                                      |
+
+:::
+
 ## Fetch security and optimisations
+
+### Instruction cache
+
+A cache miss may occur which results in the CPU stalling until the valid/ready bit turns high for
+the designated page. Instruction pointer incrementation is disabled until then, unless an interrupt
+is received, in which case it resumes again.
+
+::: {.pipeline}
+| fetch                              | fetch | decode                    | decode | execute | writeback                        |
+|------------------------------------+-------+---------------------------+--------+---------+----------------------------------|
+| instr., miss known at end of cycle |       | new address written in cc |        |         | invalidate instr.                |
+| instr. + 1, second miss, ignore    |       |                           |        |         | invalidate instr.                |
+| instr. + 2, hit, wait valid bit    |       |                           |        |         | invalidate instr. if invalid bit |
+
+:::
+
+### Cache miss deferring
+
+If a cache miss happened in the middle of a multi-byte instruction, the state is held within the
+cycles of fetching from the upper memory. The clock doesn't switch off during this time.
+
+::: {.pipeline}
+| fetch               | fetch | decode | decode | execute                  | writeback                |
+|---------------------+-------+--------+--------+--------------------------+--------------------------|
+| `imm`               |       |        |        |                          |                          |
+| cache miss value... |       |        |        | through alu, defer state | written to acc, deferred |
+| valid value         |       |        |        | through alu              | written to acc           |
+
+:::
+
+<!--
 
 ### Instruction scanning
 
 ... incoming cache page, prefetch new instruction page
 
+-->
+
 ### Branch Target Buffer {#sec-btb}
 
-... store source/destination addresses of jumps
+The Branch Target Buffer (BTB) caches the jump destination addresses to allow the instruction cache
+to perform a jump within a single cycle, avoiding a three cycle penalty. @sec-jumps provides a
+pipeline diagram of the BTB. Below are diagrams showing the interference of a cache miss during a
+jump with both a BTB hit and miss.
+
+::: {.pipeline}
+| fetch             | fetch                 | decode | decode         | execute | writeback         |
+|-------------------+-----------------------+--------+----------------+---------+-------------------|
+| `jmpr`            | btb hit               |        |                |         | no jump necessary |
+| signed offset     | cancel cache miss     |        | perform offset |         | invalidate instr. |
+| valid destination | could be a cache miss |        |                |         |                   |
+
+:::
+
+::: {.pipeline}
+| fetch             | fetch                 | decode | decode         | execute | writeback         |
+|-------------------+-----------------------+--------+----------------+---------+-------------------|
+| `jmpr`            | btb miss              |        |                |         | jumped to address |
+| signed offset     |                       |        | perform offset |         | invalidate instr. |
+| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr. |
+| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr. |
+| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr. |
+| valid destination | could be a cache miss |        |                |         |                   |
+
+:::
+
+BTB addresses are invalidated when the page of origin gets written to, which includes context swaps
+in virtual memory like by switching userland processes.
+
+<!--
 
 ### Branch Target Identification
 
 ... security improvements for dynamic jumps[^1]
 
 [^1]: Feature is set as a flag in the DMAC.
+
+-->
