@@ -18,7 +18,7 @@ services:
       - VIRTUAL_NETWORK=nginx
       - VIRTUAL_PORT=80
       - LETSENCRYPT_HOST=qcpu.qsmally.org
-      - LETSENCRYPT_EMAIL=info@qbot.eu
+      - LETSENCRYPT_EMAIL=letsencrypt@qsmally.org
     networks:
       - default
       - qcpu-network-bridge
