@@ -79,4 +79,5 @@ Processor flags (for boot sector, LSB first):
 
 * Memory virtualisation enabled (exec mode),
 * Interrupts enabled,
-* Branch Target Buffer enabled.
+* Branch Target Buffer enabled,
+* Branch Target Identification enabled.
