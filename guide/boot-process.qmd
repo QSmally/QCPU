@@ -21,11 +21,11 @@ main memory port @arm-memory-management [chap. 3].
 
 Two built-in I/O devices are present in the QCPU microcontroller's physical memory:
 
-* `Boot` sector ROM device [`0`],
-* `DMAC` device [`1`].
+* `Boot` sector ROM device [`0`] (processor/kernel control block),
+* `DMAC` device [`1`] (interaction points with hardware).
 
 ```
-0                             23 24                 255
+0       1      2              23 24                 255
 [ boot | dmac | ... devices ... | ... main memory ... ]
                v   v             v
 example:       tty storage       kernel
@@ -44,31 +44,39 @@ In direct mode, the virtual memory system maps each address to the same physical
 Kernel mode restrictions are disabled. The virtual memory essentially functions as a 'linear'
 address map compared to the three-step map process (`kfixed`, `kvariable` and `userland`).
 
-The boot sector is an 'instance' page in direct mode, and QCPU will jump directly to the
-`entrypoint` address provided in the instance page. @sec-instance describes the memory layout of
-the instance page.
-
 ### Execution mode: 'exec' {#sec-exec}
 
 In exec mode, upon booting, the microcontroller loads physical page zero at the `kfixed` region and
-jumps to the entrypoint given in the instance page (which is the 'boot' sector device). The CPU
+jumps to the entrypoint given in the control block (which is the 'boot' sector device). The CPU
 begins in kernel mode. An entrypoint program (like a bootloader, to later expand to a kernel when
 it's loaded from a persistent storage device) is expected to be loaded at the address of the
 entrypoint.
 
-### 'Instance' page {#sec-instance}
+### Process/CPU Control Block
 
-An 'instance' page registers which addresses to use for a userspace application. Like an entrypoint
-address, address for a stack, and addresses for the memory access modes, they configure QCPU's
-memory layout. Typically, in exec mode, the instance page is also used for both userland and kernel
-sections.
+A 'control' block registers which addresses to use for the processor as well as parameters for a
+userspace application. Like an entrypoint address, they configure QCPU's runtime. Typically, in exec
+mode, the control block is also used for userland sections.
 
-* Entrypoint [`0, 1`],
-* Begin stack [`2, 3`],
-    - Current stack frame [`4, 5`],
-    - Current stack pointer [`6, 7`]
-* Globals/access mode [`8, 9`],
-* Kernel: `kvariable` memory map [`10, 11`],
-* Kernel: `userland` memory map [`12, 13`],
-* Kernel: system call/interrupt map [`14, 15`],
-* Unused [`16 - 255`].
+On reset, QCPU jumps to the entrypoint address given in the boot sector (and freshly loads it from
+physical memory section 0 on rising edge).
+
+* Entrypoint addr. [`0, 1`],
+* Interrupt addr. [`2, 3`],
+* Reserved addr. [`4, 5`],
+* Processor flags [`6, 7`].
+
+Userspace:
+
+* Begin stack [`8, 9`]
+    - Current stack frame [`10, 11`]
+    - Current stack pointer [`12, 13`]
+
+Note that these values aren't 1:1 with the special registers for the stack frame/pointer, and are
+instead ideally to be set by the kernel when switching userland processes.
+
+Processor flags (for boot sector, LSB first):
+
+* Memory virtualisation enabled (exec mode),
+* Interrupts enabled,
+* Branch Target Buffer enabled.

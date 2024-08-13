@@ -116,7 +116,9 @@ is received, in which case it resumes again.
 ### Cache miss deferring
 
 If a cache miss happened in the middle of a multi-byte instruction, the state is held within the
-cycles of fetching from the upper memory. The clock doesn't switch off during this time.
+cycles of fetching from the upper memory. The clock doesn't switch off during this time. Inversely,
+the instruction requiring multiple additional bytes can implement a latch only when a valid byte is
+received.
 
 ::: {.pipeline}
 | fetch               | fetch | decode | decode | execute                  | writeback                |
