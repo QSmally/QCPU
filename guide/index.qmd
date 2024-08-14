@@ -2,7 +2,7 @@
 title: "Guide"
 listing:
   categories: true
-  fields: [title, subtitle, description, date, categories, reading-time]
+  fields: [title, subtitle, description, categories, reading-time]
   sort: date
   type: default
 page-layout: article

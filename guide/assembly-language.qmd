@@ -8,6 +8,8 @@ filters:
     - include-code-files
 ---
 
+<!-- TODO: fix this with up-to-date information about the assembler/linker project -->
+
 Like most assemblers, each QCPU 2 source line contains some combination of the
 following four fields:
 

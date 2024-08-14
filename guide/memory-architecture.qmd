@@ -10,68 +10,88 @@ categories: [memory]
 
 ## Memory access
 
-A memory instruction (which is either `mst` or `mld`) can be composed like the
-following:
+A memory instruction (which is either `mst` or `mld` and their word equivalent) can be composed like
+the following:
 
 ```{.asm}
-instr <mode:2> <selector:2>, <static offset:8>
+instr <dynamic:1> <register:2>, low byte, high byte
 ```
 
-An access mode are two status bits which modify the execution of the memory
-access.
+Dynamic offsets is a bit whether to add an 8 bit accumulator offset to the address, indicated by `'`
+after the instruction. For the register selection, it's a special or index register used in the
+address calculation:
 
-- Word access: performs an access on two bytes by using the index registers (`rx`, `ry`) as source/destination;
-- Offset: whether to add an 8 bit offset (`rz`) to the access, indicated by `'` after the selector.
+| id   | short | description                                                 |
+|------+-------+-------------------------------------------------------------|
+| `00` |       | none                                                        |
+| `01` | `idx` | general-purpose index register (`rx` and `ry`)              |
+| `10` | `sf`  | stack frame (user or kernel depending on current context)   |
+| `11` | `sp`  | stack pointer (user or kernel depending on current context) |
 
-For the selector, it's the known base pointer for the first memory access:
+Special registers have a user and kernel copy. They aren't addressable in userspace, but can be
+written to using the DMAC in kernel space or implicitly through certain instructions (like
+mutating the stack pointer with `msp`).
 
-| selector | userland | description                  | kernel mode | description                 |
-|----------+----------+------------------------------+-------------+-----------------------------|
-| `00`     | `sid`    | index registers (x/y)        | inherit     |                             |
-| `01`     | `sgl`    | globals                      | `skg`       | kernel globals              |
-| `10`     | `sfb`    | current stack frame position | `skf`       | kernel stack frame position |
-| `11`     | `ssb`    | stack base position          | `skv`       | kernel variable space       |
+Depending on the processor's current context (either user or kernel mode), operations using the
+special registers will vary between the two copies. For example, if a system call is done in
+userland, the stack immediately switches to the kernel's location.
 
-Selectors in userland are read from a memory mapped space.
+## Address resolution
 
-Each memory access can have a static offset, which is an 8 bit unsigned
-immediate integer which is added to the address. A dynamic offset can be added
-by adding the 'offset' (`'`) flag to the access mode. It results in unsigned
-register `rz` being added to the address. Together, registers `rx`, `ry`, `rz`
-make up the memory registers @zilog-z80 [p. 34-38].
+Like for the `imm` (load immediate) and `addi` (add with immediate, and alike) instructions
+described in the diagrams below, the memory instructions use an instruction constant. For memory
+instructions specifically, it's a 2 byte, little-endian immediate.
 
-::: {.callout-note}
-Note: currently missing post-increment (pre-decrement can be done with `dec rz`)
+::: {.pipeline}
+| fetch               | fetch | decode        | decode | execute     | writeback      |
+|---------------------+-------+---------------+--------+-------------+----------------|
+| `imm`               |       |               |        | through alu | written to acc |
+| value for immediate |       | ready for alu |        |             |                |
 :::
 
-### Scenarios
+::: {.pipeline}
+| fetch               | fetch | decode        | decode | execute            | writeback      |
+|---------------------+-------+---------------+--------+--------------------+----------------|
+| `ast ra`            |       | load `ra`     |        | through alu        | written to acc |
+| `addi`              |       |               |        | add value with acc | written to acc |
+| value for immediate |       | ready for alu |        |                    |                |
+:::
 
-```{.txt}
-mld  sid,  offset       ; load absolute
-mld  sid', offset       ; load absolute with dynamic offset
-mld  sgl,  offset       ; load from globals
-mld  sgl', offset       ;
-mld  ssb,  offset       ; load from absolute stack position
-mld  ssb', offset       ;
-mld  sfb,  offset       ; load from current stack frame position
-mld  sfb', offset       ;
-```
+The full address calculation pipeline is shown in the pipeline diagram below. Memory instruction
+`mldw'` loads a word from memory with an additional dynamic offset (the accumulator store prefixing
+the instruction) and the index registers.
+
+Together, the address is calculated as `[dynamic offset +] instruction constant + register`.
+
+::: {.pipeline}
+| fetch       | fetch | decode                    | decode | execute               | writeback                      |
+|-------------+-------+---------------------------+--------+-----------------------+--------------------------------|
+| `ast rz`    |       | load `rz`                 |        | through alu           | written to acc, dynamic offset |
+| `mldw' idx` |       | load `rx`                 |        | rx + imml             | dynamic offset                 |
+| low byte    |       | load `ry`, low byte ready |        | ry + imml prop. carry | dynamic offset prop. carry     |
+| high byte   |       | high byte ready           |        |                       | invalidate instr.              |
+| hold pc...  |       |                           |        |                       |                                |
+| `rst ra`    |       |                           |        | write to reg          |                                |
+| `rst rb`    |       |                           |        | write to reg          |                                |
+
+:::
+
+The immediate and register is calculated through the ALU, but the dynamic offset is calculated with
+a hardware-accelerated component. Note that the intermediate address is put through in two separate
+bytes. The dynamic offset component consists of an adder (adding the previous accumulator value and
+the low byte of the intermediate address) and a conditional incrementer (if a carry-out was present
+in the addition of the previous cycle, an increment is done for the high byte).
 
 ## Reference indirection
 
-An indirect access is done by loading two bytes into the index registers,
-combined with another access with the `sid` access mode.
+An indirect access is done by loading two bytes from an arbitrary memory location and storing the
+result into the index registers. This can be combined with another access using `idx` as address
+register.
 
 ```{.txt}
-mldw sfb,  offset       ; load first address
-
-mld  sid,  offset       ; load from pointer located in stack
-mld  sid', offset       ; load from dynamically offsetted pointer in stack
-
-mld  sfb,  offset       ; equivalent to (adds 5 bytes):
-rst rx
-mld  sfb,  offset + 1
-rst ry
-ast ra                  ; dynamic offset
-mld  sid', offset
+mldw        0x0000        ; load first address
+rst   rx
+rst   ry
+mld   idx   0x0000        ; load from indirect address
+rst   ra
 ```

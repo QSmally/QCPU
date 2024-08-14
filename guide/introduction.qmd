@@ -5,13 +5,8 @@ date: 2023-10-5
 categories: []
 ---
 
-QCPU 2 is a singular operand architecture, which means its instructions can be
-8 bits in size. Its address space, however, is 16 bits.
-
-QCPU's assembler will automatically choose the memory mode of the instruction
-depending on the expression syntax and whichever is more efficient and possible.
-For example, a jump will be done in relative mode unless its out of the range of
-`-128 < offset <= 128`.
+QCPU 2 is a singular operand architecture, which means its instructions can be 8 bits in size. Its
+address space, however, is 16 bits.
 
 ## Register map
 
@@ -24,19 +19,11 @@ For example, a jump will be done in relative mode unless its out of the range of
 
 There are a couple of special, non-addressable registers:
 
-- Executable global pointer `[u16]`
-- Stack base pointer `[u16]`
-- Stack frame pointer `[u16]`
+- Stack pointer: `sp` (`u16`)
+- Stack frame pointer: `sf` (`u16`)
 
 ### Index register
 
-Certain memory operations use registers `rx` and `ry` as the 16 bit index
-register, with `rz` being the dynamic offset register when the instruction
-requires it.
-
-The `mstw` and `mldw` instructions (memory store/load 'word') both use the index
-register as source and destination
-
-::: {.callout-note}
-`mstw` would store the address of itself with address mode `sid`
-:::
+Certain memory operations can use registers `rx` and `ry` as the 16 bit index register, as opposed
+to either one of the special registers or none. See the memory chapter for more information about
+memory accessing and data flow.

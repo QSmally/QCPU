@@ -21,14 +21,14 @@ instruction is used instead of three bytes and the offset is calculated based on
 pointer value at the address of the first jump instruction byte.
 
 ::: {.pipeline}
-| fetch                   | fetch         | decode          | decode         | execute | writeback                        |
-|-------------------------+---------------+-----------------+----------------+---------+----------------------------------|
-| `jmp`                   | btb hit known |                 |                |         | jumped if btb miss, write to btb |
-| low byte                |               | low byte shift  | low byte ready |         | invalidate instr.                |
-| high byte or btb instr. |               | high byte ready |                |         | invalidate instr. if btb miss    |
-| btb instr. + 1          |               |                 |                |         | invalidate instr. if btb miss    |
-| btb instr. + 2          |               |                 |                |         | invalidate instr. if btb miss    |
-| btb instr. + 3 or jump  |               |                 |                |         |                                  |
+| fetch                   | fetch         | decode          | decode         | execute | writeback                          |
+|-------------------------+---------------+-----------------+----------------+---------+------------------------------------|
+| `jmp`                   | btb hit known |                 |                |         | jumped if btb miss, written to btb |
+| low byte                |               | low byte shift  | low byte ready |         | invalidate instr.                  |
+| high byte or btb instr. |               | high byte ready |                |         | invalidate instr. if btb miss      |
+| btb instr. + 1          |               |                 |                |         | invalidate instr. if btb miss      |
+| btb instr. + 2          |               |                 |                |         | invalidate instr. if btb miss      |
+| btb instr. + 3 or jump  |               |                 |                |         |                                    |
 
 :::
 
@@ -58,7 +58,7 @@ callback argument) and a jump must be performed to that address. The `jmpd` inst
 this dynamic functionality by piping the last two accumulator writes into the instruction pointer.
 
 Because dynamic addressing may change, the BTB (explained in @sec-btb) compares the speculation
-address versus actual address and recovers/invalidates if necessary when a BTB hit was found.
+address versus actual address and recovers/invalidates if necessary when a BTB hit was found.[^1]
 
 ::: {.pipeline}
 | fetch    | fetch         | decode    | decode | execute                   | writeback                             |
@@ -68,6 +68,8 @@ address versus actual address and recovers/invalidates if necessary when a BTB h
 | `jmpd`   | btb hit known |           |        | compare target vs. actual | jumped if btb miss or invalid address |
 
 :::
+
+[^1]: Currently uncertain. BTB may not be used for dynamic addresses.
 
 ## Branches
 
@@ -85,16 +87,23 @@ bytes), where bit `T` is whether the jump should be taken when uncertain (only o
 * `!U` - not underflow
 
 ::: {.pipeline}
-| fetch                                 | fetch         | decode | decode                                            | execute                               | writeback                            |
-|---------------------------------------+---------------+--------+---------------------------------------------------+---------------------------------------+--------------------------------------|
-| `brh c`                               | btb hit known |        |                                                   | recovery ready for taken -> not taken | jumped if mispredicted, write to btb |
-| signed offset                         |               |        | perform offset, ready for not taken -> taken jump |                                       | invalidate instr.                    |
-| btb hit and T, btb miss or !T         |               |        |                                                   |                                       | invalidate instr. if mispredicted    |
-| taken + 1 or not taken + 1            |               |        |                                                   |                                       | invalidate instr. if mispredicted    |
-| taken + 2 or not taken + 2            |               |        |                                                   |                                       | invalidate instr. if mispredicted    |
-| taken + 3 or not taken + 3 or recover |               |        |                                                   |                                       |                                      |
+| fetch                                 | fetch         | decode | decode                                            | execute                               | writeback                              |
+|---------------------------------------+---------------+--------+---------------------------------------------------+---------------------------------------+----------------------------------------|
+| `brh c`                               | btb hit known |        |                                                   | recovery ready for taken -> not taken | jumped if mispredicted, written to btb |
+| signed offset                         |               |        | perform offset, ready for not taken -> taken jump |                                       | invalidate instr.                      |
+| btb hit and T, btb miss or !T         |               |        |                                                   |                                       | invalidate instr. if mispredicted      |
+| taken + 1 or not taken + 1            |               |        |                                                   |                                       | invalidate instr. if mispredicted      |
+| taken + 2 or not taken + 2            |               |        |                                                   |                                       | invalidate instr. if mispredicted      |
+| taken + 3 or not taken + 3 or recover |               |        |                                                   |                                       |                                        |
 
 :::
+
+For address calculation, branch recovery and BTB writes, the following address delay cycles are
+used:
+
+* Address calculation (relative jumps/branches): 3 cycles (relative to the instruction)
+* Branch recovery (taken -> not taken branches): 3 cycles (incremented)
+* Branch Target Buffer writes: 4 cycles
 
 ## Fetch security and optimisations
 
@@ -154,14 +163,14 @@ jump with both a BTB hit and miss.
 :::
 
 ::: {.pipeline}
-| fetch             | fetch                 | decode | decode         | execute | writeback         |
-|-------------------+-----------------------+--------+----------------+---------+-------------------|
-| `jmpr`            | btb miss              |        |                |         | jumped to address |
-| signed offset     |                       |        | perform offset |         | invalidate instr. |
-| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr. |
-| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr. |
-| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr. |
-| valid destination | could be a cache miss |        |                |         |                   |
+| fetch             | fetch                 | decode | decode         | execute | writeback                         |
+|-------------------+-----------------------+--------+----------------+---------+-----------------------------------|
+| `jmpr`            | btb miss              |        |                |         | jumped to address, written to btb |
+| signed offset     |                       |        | perform offset |         | invalidate instr.                 |
+| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr.                 |
+| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr.                 |
+| penalty cycle     | cancel cache miss     |        |                |         | invalidate instr.                 |
+| valid destination | could be a cache miss |        |                |         |                                   |
 
 :::
 
