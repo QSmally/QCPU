@@ -24,9 +24,9 @@ address calculation:
 | id   | short | description                                                 |
 |------+-------+-------------------------------------------------------------|
 | `00` |       | none                                                        |
-| `01` | `idx` | general-purpose index register (`rx` and `ry`)              |
-| `10` | `sf`  | stack frame (user or kernel depending on current context)   |
-| `11` | `sp`  | stack pointer (user or kernel depending on current context) |
+| `01` | `sf`  | stack frame (user or kernel depending on current context)   |
+| `10` | `sp`  | stack pointer (user or kernel depending on current context) |
+| `11` | `idx` | general-purpose index register (`rx` and `ry`)              |
 
 Special registers have a user and kernel copy. They aren't addressable in userspace, but can be
 written to using the DMAC in kernel space or implicitly through certain instructions (like

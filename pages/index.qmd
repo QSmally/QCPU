@@ -27,7 +27,7 @@ subtitle: "QCPU 2 5-3-(8/16) reference"
 | `0-1011-###`  | **sub**  | Subtraction                         | 1 | acc -= *reg*                                     | zr -> ?                                                    |
 | `0-1100-###`  | **subb** | Subtraction with borrow             | 1 | acc -= *reg* - 1 if !carry                       | zr -> flood B side, carry flag taken 2 instructions before |
 | `0-1101-###`  | **ior**  | Bitwise incl. OR (insert bits)      | 1 | acc \|= *reg*                                    | zr -> acc ior imm (**iori**)                               |
-| `0-1110-###`  | **and**  | Bitwise AND (mask/remove bits)      | 1 | acc &= *reg*                                     | zr -> acc and imm (**andi**)                               |
+| `0-1110-###`  | **and**  | Bitwise AND (mask/remove bits)      | 1 | acc &= *reg*                                     | zr -> acc and imm (**andi**) andi imm is inverted          |
 | `0-1111-###`  | **xor**  | Bitwise excl. OR (toggle bits)      | 1 | acc ^= *reg*                                     | zr -> acc xor imm (**xori**)                               |
 | `1-0000-###`  | **bsl**  | Barrel shift left                   | 1 | acc <<= *amount*                                 | zr -> ?                                                    |
 | `1-0001-###`  | **bsld** | Barrel shift left by pointer        | 1 | acc <<= *reg*                                    | zr -> ?                                                    |
