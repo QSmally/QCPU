@@ -1,0 +1,24 @@
+---
+title: "Instruction recall"
+description: "Instruction cache invalidation and multibyte operation reconstruction."
+date: 2024-12-1
+categories: [memory, control-flow]
+---
+
+<!--
+still doesn't fix with branch delay slot for late flags
+-->
+
+If a cache miss happened in the middle of a multi-byte instruction, the instruction and all
+subsequently fetched bytes are immediately marked as invalid. The processor jumps to redo the
+instruction depending on the parent byte of a multi-byte instruction and which byte was invalid once
+the invalidation has been resolved.
+
+::: {.pipeline}
+| fetch                 | fetch            | decode | decode | execute | writeback   |
+|-----------------------+------------------+--------+--------+---------+-------------|
+| `mst`                 |                  |        |        |         | invalidated |
+| low byte              |                  |        |        |         | invalidated |
+| high byte, cache miss | cache miss known |        |        |         | invalidated |
+
+:::

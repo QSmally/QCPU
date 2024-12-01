@@ -70,7 +70,7 @@ Together, the address is calculated as `[dynamic offset +] instruction constant 
 | `mldw' idx` |       | load `rx`                 |        | rx + imml             | dynamic offset                 |
 | low byte    |       | load `ry`, low byte ready |        | ry + imml prop. carry | dynamic offset prop. carry     |
 | high byte   |       | high byte ready           |        |                       | invalidate instr.              |
-| hold pc...  |       |                           |        |                       |                                |
+| sync recall |       |                           |        |                       |                                |
 | `rst ra`    |       |                           |        | write to reg          |                                |
 | `rst rb`    |       |                           |        | write to reg          |                                |
 
@@ -81,6 +81,10 @@ a hardware-accelerated component. Note that the intermediate address is put thro
 bytes. The dynamic offset component consists of an adder (adding the previous accumulator value and
 the low byte of the intermediate address) and a conditional incrementer (if a carry-out was present
 in the addition of the previous cycle, an increment is done for the high byte).
+
+<!--
+TODO: could be in the alu instead of hardware component, it doesn't really have any performance impact
+-->
 
 ## Reference indirection
 
@@ -94,4 +98,19 @@ rst   rx
 rst   ry
 mld   idx   0x0000        ; load from indirect address
 rst   ra
+```
+
+## Async memory
+
+Fetching from memory takes time, especially when a cache miss is present. To combat this more
+efficiently, results from memory can be asynchronously written to a temporary register set and read
+from later. If the register is still 'pending', the processor will stall until it resolves the
+register.
+
+```{.txt}
+mldw        0x0000        ; load first address
+amra                      ; mark buffer a as pending
+
+amr   mal                 ; move register a, low byte, into acc
+amr   mah                 ; move register a, high byte, into acc
 ```

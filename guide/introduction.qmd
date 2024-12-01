@@ -6,7 +6,8 @@ categories: []
 ---
 
 QCPU 2 is a singular operand architecture, which means its instructions can be 8 bits in size. Its
-address space, however, is 16 bits.
+address space, however, is 16 bits. There are certain instructions which take an additional one or
+two bytes for instructions.
 
 ## Register map
 
@@ -21,6 +22,18 @@ There are a couple of special, non-addressable registers:
 
 - Stack pointer: `sp` (`u16`)
 - Stack frame pointer: `sf` (`u16`)
+
+
+### Async memory registers
+
+Memory can be fetched from asynchronously, using the `amr*` instructions, and read from through the
+`amr` instruction. Pending registers (those who have called for a fetch, but not yet received a
+response) will cause the processor to stall. The addressable registers are:
+
+- A: `mah`, `mal`
+- B: `mbh`, `mbl`
+- C: `mch`, `mcl`
+- D: `mdh`, `mdl`
 
 ### Index register
 

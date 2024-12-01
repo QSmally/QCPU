@@ -12,9 +12,9 @@ instruction pointer to a static or runtime-dynamic address.
 
 There are three types of jump instructions used in various scenarios:
 
-* `1-1011-00-#` `jmp`: jumps to an absolute address (3 bytes)
-* `1-1011-01-#` `jmpr`: jumps to a relative offset (2 bytes)
-* `1-1011-10-#` `jmpd`: jumps to a dynamic address (1 byte)
+* `1-1010-#-00` `jmp`: jumps to an absolute address (3 bytes)
+* `1-1010-#-01` `jmpr`: jumps to a relative offset (2 bytes)
+* `1-1010-#-10` `jmpd`: jumps to a dynamic address (1 byte)
 
 A pipeline diagram (for `jmp` in this case) is shown below. For a relative jump (`jmpr`), a two byte
 instruction is used instead of three bytes and the offset is calculated based on the instruction
@@ -73,7 +73,7 @@ address versus actual address and recovers/invalidates if necessary when a BTB h
 
 ## Branches
 
-A branch is a non-callable, relative, conditional jump with the synopsys `1-100-T-###` `brh` (2
+A branch is a non-callable, relative, conditional jump with the synopsys `1-1001-###` `brh` (2
 bytes), where bit `T` is whether the jump should be taken when uncertain (only on BTB hit). The
 3 bit condition is either the following:
 
@@ -110,8 +110,13 @@ used:
 ### Instruction cache
 
 A cache miss may occur which results in the CPU stalling until the valid/ready bit turns high for
-the designated page. Instruction pointer incrementation is disabled until then, unless an interrupt
+the designated page.
+
+<!--
+TODO:
+Instruction pointer incrementation is disabled until then, unless an interrupt
 is received, in which case it resumes again.
+-->
 
 ::: {.pipeline}
 | fetch                              | fetch | decode                    | decode | execute | writeback                        |
@@ -119,22 +124,6 @@ is received, in which case it resumes again.
 | instr., miss known at end of cycle |       | new address written in cc |        |         | invalidate instr.                |
 | instr. + 1, second miss, ignore    |       |                           |        |         | invalidate instr.                |
 | instr. + 2, hit, wait valid bit    |       |                           |        |         | invalidate instr. if invalid bit |
-
-:::
-
-### Cache miss deferring
-
-If a cache miss happened in the middle of a multi-byte instruction, the state is held within the
-cycles of fetching from the upper memory. The clock doesn't switch off during this time. Inversely,
-the instruction requiring multiple additional bytes can implement a latch only when a valid byte is
-received.
-
-::: {.pipeline}
-| fetch               | fetch | decode | decode | execute                  | writeback                |
-|---------------------+-------+--------+--------+--------------------------+--------------------------|
-| `imm`               |       |        |        |                          |                          |
-| cache miss value... |       |        |        | through alu, defer state | written to acc, deferred |
-| valid value         |       |        |        | through alu              | written to acc           |
 
 :::
 
