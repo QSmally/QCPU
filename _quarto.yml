@@ -23,7 +23,6 @@ website:
 format:
   html:
     code-copy: true
-    minimal: true
     page-layout: article
     number-sections: true
     include-after-body:
@@ -33,4 +32,4 @@ format:
       dark: cyborg
     css: publish/style.css
     bibliography: publish/references.bib
-    csl: https://www.zotero.org/styles/ieee-control-systems
+    csl: publish/ieee-control-systems.csl

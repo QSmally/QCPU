@@ -50,7 +50,7 @@ generically modify data whilst still being in the virtual context
 
 ```
                       16 KiB
-          0xC000      0xD000      0xFFFF
+          0xC000      0xF000      0xFFFF
              |-----------|-----------|
  | userland  | kfixed    | kvariable |
                12 KiB      4 KiB
@@ -106,10 +106,10 @@ registers controls the physical operations on memory.
 
 <!--
 `###: kfixed begin` (default `0xC000`)
-`###: kvariable begin` (default `0xE000`)
+`###: kvariable begin` (default `0xF000`)
 -->
 
-A 'boot sector' of a filesystem is executed in kernel mode at address `0xE000`,
+A 'boot sector' of a filesystem is executed in kernel mode at address `0xF000`,
 which aims to overlay its kernel address space from the boot firmware into the
 specific filesystem's kernel by setting the appropriate `kfixed*` registers of
 the DMAC.

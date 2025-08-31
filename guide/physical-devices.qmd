@@ -16,7 +16,7 @@ another application) and to provide abstraction from the underlying hardware
 ```
 *----------*             *----------*    +- devices interface -+
 |          |             |          | ___ I/O 0 'boot' regfile |
-|  64 KiB  |             |  64 KiB  | ___ I/O 1 'dmac' regfile | ___
+|  64 KiB  |             |  64 KiB  | ___ I/O 1 'csrs' regfile | ___
 |          | per-process |          | ___ I/O ... regfile      |    |
 | virtual  | ___ MMU ___ | physical | ___ I/O 23 regfile       |    |
 | memory   |   mapping   | memory   |                          |    |c
@@ -97,6 +97,10 @@ Currently, the two-byte MMU stride is for a 16 bit physical address.
   segmentation fault to the processor;
 * **Dirty**: a read or write triggers a new lookup in physical memory.
 
+::: {.callout-note}
+A four-byte MMU stride is experimental, with ptr (2 byte), len (1 byte), flags (1 byte) fields
+:::
+
 ## I/O: input and output {#sec-io}
 
 There are 24 total pages mapped to I/O devices. Each page is a 256 byte register
@@ -111,7 +115,31 @@ bytes).
 Two built-in I/O devices are present in the QCPU microcontroller:
 
 * 'Boot' sector ROM device [`0`],
-* 'DMAC' device [`1`].
+* 'CSRs' (Control & Status Registers) device [`1`].
+
+### Control & Status Registers
+
+* User stack-frame register [`0, 1`]
+* User stack-pointer register [`2, 3`]
+* Kernel stack-frame register [`4, 5`]
+* Kernel stack-pointer register [`6, 7`]
+* Flag register [`8`]
+* Interrupt identifier [`9`]
+* Address of generated exception [`10, 11`]
+* Write to clear interrupt/critical interrupt section [`12`]
+* Reserved [`13`]
+* Timer prescaler [`14, 15`]
+* Storage control block reserved [`16 - 31`]
+* Reserved [`32 - 255`]
+
+| identifier | name      | description                                                 |
+|------------+-----------+-------------------------------------------------------------|
+| `0x00`     | `timer`   | system timer for preemptive multitasking) (lowest priority) |
+| `0x01`     | `syscall` | system call interface                                       |
+| `0x02`     | `cow`     | a memory page is being written to with copy-on-write active |
+| `0x03`     | `segv`    | on unmapped or unprivileged virtual memory access           |
+
+<!--
 
 Interrupts with a lower address have higher priority. An interrupt with address
 0 can therefore interrupt the interrupt with address 1[^1]. Having two
@@ -144,3 +172,5 @@ executed) if deemed necessary to prevent cyclic usage of this feature.
 
 [^1]: Feature is currently uncertain.
 [^2]: Cycle buffer is system-dependent.
+
+-->

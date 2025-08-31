@@ -5,10 +5,6 @@ date: 2024-12-1
 categories: [memory, control-flow]
 ---
 
-<!--
-still doesn't fix with branch delay slot for late flags
--->
-
 If a cache miss happened in the middle of a multi-byte instruction, the instruction and all
 subsequently fetched bytes are immediately marked as invalid. The processor jumps to redo the
 instruction depending on the parent byte of a multi-byte instruction and which byte was invalid once
@@ -22,3 +18,14 @@ the invalidation has been resolved.
 | high byte, cache miss | cache miss known |        |        |         | invalidated |
 
 :::
+
+## Instruction pointer sources
+
+- 16 bit incremented fetch address (default, pc + 1)
+- 16 bit absolute address (`jmp`)
+- 8 bit relative address, addition with source address (`jmpr`, `brh`)
+- 16 bit dynamic absolute address (`jmpd`)
+- 16 bit incremented source address (branch recovery for `brh`)
+- 16 bit return address from stack/memory
+- 3, 16 bit addresses from boot page (entrypoint addr., interrupt addr., kernel addr.?)
+- 3, 16 bit instruction recall addresses for source, source - 1, source - 2

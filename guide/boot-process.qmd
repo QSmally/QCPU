@@ -22,11 +22,11 @@ main memory port @arm-memory-management [chap. 3].
 Two built-in I/O devices are present in the QCPU microcontroller's physical memory:
 
 * `Boot` sector ROM device [`0`] (processor/kernel control block),
-* `DMAC` device [`1`] (interaction points with hardware).
+* `CSRs` device [`1`] (interaction points with hardware).
 
 ```
 0       1      2              23 24                 255
-[ boot | dmac | ... devices ... | ... main memory ... ]
+[ boot | csrs | ... devices ... | ... main memory ... ]
                v   v             v
 example:       tty storage       kernel
                    controller
@@ -36,7 +36,7 @@ example:       tty storage       kernel
 The start-up content and behaviour of the 'boot' sector device differs between the two processor
 execution modes explained in both @sec-direct and @sec-exec.
 
-[^1]: Storage controller may be integrated into the 'DMAC' device for memory references
+[^1]: Storage controller may be integrated into CSRs for memory references
 
 ### Execution mode: 'direct' {#sec-direct}
 
@@ -56,26 +56,34 @@ entrypoint.
 
 A 'control' block registers which addresses to use for the processor as well as parameters for a
 userspace application. Like an entrypoint address, they configure QCPU's runtime. Typically, in exec
-mode, the control block is also used for userland sections.
+mode, the control block is also used for userland sections. The control block resides at the root
+page of virtual memory (addresses `0..256`). For the kernel, it's located at the physical root page.
 
 On reset, QCPU jumps to the entrypoint address given in the boot sector (and freshly loads it from
 physical memory section 0 on rising edge).
 
-* Entrypoint addr. [`0, 1`],
-* Interrupt addr. [`2, 3`],
-* Reserved addr. [`4, 5`],
-* Processor flags [`6, 7`].
+The control block is immutable. For mutating addresses, the kernel must copy them to a secondary
+tracking page which is updated every switch of userspace contexts.
 
-Userspace:
+* Entrypoint address [`0, 1`]
+* ... (mode specific)
+* Frame address (stack base) [`8, 9`]
+* Pointer address (top-of-stack) [`10, 11`]
+* ... (mode specific)
 
-* Begin stack [`8, 9`]
-    - Current stack frame [`10, 11`]
-    - Current stack pointer [`12, 13`]
+**Kernel (boot sector)**:
 
-Note that these values aren't 1:1 with the special registers for the stack frame/pointer, and are
-instead ideally to be set by the kernel when switching userland processes.
+* Interrupt address [`2, 3`]
+* Reserved address [`4, 5`]
+* Processor flags (defined below section) [`6, 7`]
+* `kfixed` address to memory map `kvariable` (upper byte) [`12`]
+* `kvariable` address to memory map `userland` (upper byte) [`13`]
 
-Processor flags (for boot sector, LSB first):
+**Userspace**:
+
+* None
+
+**Processor flags (for boot sector, LSB first)**:
 
 * Memory virtualisation enabled (exec mode),
 * Interrupts enabled,

@@ -9,5 +9,7 @@ Session.vim
 # Quarto
 .quarto/
 _site/
-
 /.quarto/
+
+# Miscellaneous
+files

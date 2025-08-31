@@ -6,12 +6,12 @@ subtitle: "QCPU 2 5-3-(8/16) reference"
 ::: {.instruction-set .column-screen}
 | QCPU 2        | Short    | Description                         | B | Representation                                   | Notes                                                      |
 |---------------+----------+-------------------------------------+---+--------------------------------------------------+------------------------------------------------------------|
-| `0-0000-000`  | **sysc** | System call interrupt               | 2 | acc = imm, call int                              | interrupt performs link on kernel stack                    |
-| `0-0000-001`  | **ret**  | Pull from stack and jump            | 1 | pcl, pch = \*2(sf); sfl, sfh = \*2(sf + 2)       | takes 4 memory reads, stalls                               |
-| `0-0000-010`  | **msp**  | Allocate by mutating stack pointer  | 3 | sp += amount                                     | restore acc?                                               |
-| `0-0000-011`  | **nta**  | NOT accumulator                     | 1 | acc = !acc                                       |                                                            |
-| `0-0000-100`  | **bmr**  | Barrel shifter modifier: rotate     | 1 |                                                  |                                                            |
-| `0-0000-101`  | **bms**  | Barrel shifter modifier: sign shift | 1 |                                                  |                                                            |
+| `0-0000-000`  | **bkpt** | Breakpoint                          | 1 |                                                  |                                                            |
+| `0-0000-001`  | **sysc** | System call interrupt               | 2 | acc = imm, call int(sysc)                        | interrupt performs link on kernel stack                    |
+| `0-0000-010`  | **ret**  | Pull from stack and jump            | 1 | pcl, pch = \*2(sf); sfl, sfh = \*2(sf + 2)       | takes 4 memory reads, stalls                               |
+| `0-0000-011`  | **msp**  | Allocate on stack                   | 2 | sp += amount                                     | restore acc?                                               |
+| `0-0000-100`  | **nta**  | NOT accumulator                     | 1 | acc = !acc                                       |                                                            |
+| `0-0000-101`  |          | Reserved                            |   |                                                  |                                                            |
 | `0-0000-110`  |          | Reserved                            |   |                                                  |                                                            |
 | `0-0000-111`  |          | Reserved                            |   |                                                  |                                                            |
 | `0-0001-###`  | **ast**  | Accumulator store                   | 1 | acc = *reg*                                      | zr -> clear acc (**clr**)                                  |
@@ -59,40 +59,43 @@ fix flags being a cycle late
 
 <!--
 
-async memory readback register
-
-mldw sf, 0x0000, amra               -- 4 bytes
-                                    -- other operations
-amr  mal                            -- load from mal/mah, stall if marked pending
-
-
-
-mldw sf, 0x0000, amra               -- 4 bytes
-mldw sf, 0x0002, amrb               -- 4 bytes
-                                    -- other operations
-amr  mal                            -- load from mal/mah, stall if marked pending
-amr  mbl                            -- load from mbl/mbh, stall if marked pending
-
+mst   zr,   <absolute address>
+mst   idx,  <absolute/offset address> -- index-reg
+mst   sf,   <offset address>          -- stack-frame
+mst   sp,   <offset address>          -- top-of-stack
 
 -->
 
 <!--
 
-mst,      <absolute address>
-mst  idx, <absolute/offset address> -- index-reg
-mst  sf,  <offset address>          -- stack-frame
-mst  sp,  <offset address>          -- top-of-stack
+preincrement and predecrement are done with
+
+inc   ra
+mst'  sf,   <offset address>
+
+postincrement and postdecrement can be done with
+
+pinc  ra                            -- need register -> offset adder route
+mst'  sf,   <offset address>
+
+or
+
+post                                -- extra byte, just takes acc from one earlier
+inc   ra
+mst'  sf,   <offset address>
+
+need to work out multicycle dependency cache miss behaviour
+
+need forwarder logic for scenario:
+
+rst   ra
+inc   ra                            -- through acc
+
+make every memory load operation async !!! because sync sucks
 
 -->
 
 <!--
-
-barrel rotation (5 bytes)
-    ast ra
-    bsl 2   -- top 6 bits in acc
-    xch ra  -- original
-    bsr 6   -- bottom 2 bits in acc
-    ior ra  -- rotation in acc
 
 16 bit barrel operation (8 bytes)
     ast ra
@@ -103,6 +106,14 @@ barrel rotation (5 bytes)
     bsl 2   -- top 6 bits in acc for high byte
     ior rb  -- insert low byte bits into high byte
     rst rb  -- full high byte in rb
+
+-->
+
+<!--
+
+add jmpr-like jmp where 8 bit address is shifted 4 times to the left
+and the top 4 bits are inherited from current address. makes jump be
+16-byte aligned
 
 -->
 
