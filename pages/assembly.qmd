@@ -665,10 +665,47 @@ instruction. Labels are only shown if they were referenced (lazily evaluated) by
 ## Virtualiser
 
 The virtualiser can emulate QCPU assembly and provide execution and debugging insight into programs.
-It's enabled with the `--virtualise` flag. To step through the program, use the `--step` flag,
-otherwise the program will run automatically until `--maxcycles 4096` total cycles.
+It's enabled with the `--virtualise` flag and the terminal user interface is put on the terminal
+altscreen. To step through the program, use the `--step` flag, otherwise the program will run
+automatically until `--maxcycles 4096` total cycles or a breakpoint.
 
 Currently, only `--mode direct` is supported. Memory virtualisation (`--mode exec`) is not.
+
+Any emulation error, including the breakpoint instruction (`bkpt`), results in the emulator exiting
+and dumping the CPU state along with the reason of exit.
+
+```{.txt}
+$ qcpu --virtualise call-stack.s
+a crash occurred. ip was at 260 (ran 21 cycles)
+gpr dump  acc  : 0b00000000 (0)
+          ra   : 0b00000000 (0)
+          rb   : 0b00000000 (0)
+          rc   : 0b00000000 (0)
+          rd   : 0b00000000 (0)
+          rx   : 0b00000000 (0)
+          ry   : 0b00000000 (0)
+          rz   : 0b00000000 (0)
+spr dump  sf   : 0b0000001000000000 0200 (512)
+          sf(k): 0b0000000000000000 0000 (0)
+          sp   : 0b0000001000000000 0200 (512)
+          sp(k): 0b0000000000000000 0000 (0)
+@section text (size 14)
+call-stack.main          0100: 0b11000000    imm zr
+                         0101: 0b00000101    (5)
+                         0102: 0b11010101    jmprl
+                         0103: 0b00000110    (6)
+                         0104: 0b00000000    bkpt    <-- problem occurred here
+                         0105: * 0b00000000
+                         0106: * 0b00000000
+                         0107: * 0b00000000
+call-stack.subroutine    0108: 0b00110000    dec zr
+                         0109: 0b11001011    brh z
+                         010A: 0b00000100    (4)
+                         010B: 0b11010101    jmprl
+                         010C: 0b11111101    (-3)
+call-stack.ret           010D: 0b00000001    ret
+error.Breakpoint
+```
 
 ## Architectural concepts
 
