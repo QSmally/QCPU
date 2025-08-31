@@ -11,9 +11,9 @@ two bytes for instructions.
 
 ## Register map
 
-- Accumulator: `ra` (0)
+- Accumulator: `zr` (0)
 - Zero register: `zr` (0)
-- General purpose: `rb`, `rc`, `rd`, `re`  (1-4)
+- General purpose: `ra`, `rb`, `rc`, `rd`  (1-4)
 - Subroutine args: `rx`, `ry`, `rz` (5-7)
 
 ### Special registers
@@ -22,7 +22,6 @@ There are a couple of special, non-addressable registers:
 
 - Stack pointer: `sp` (`u16`)
 - Stack frame pointer: `sf` (`u16`)
-
 
 ### Async memory registers
 
@@ -34,6 +33,10 @@ response) will cause the processor to stall. The addressable registers are:
 - B: `mbh`, `mbl`
 - C: `mch`, `mcl`
 - D: `mdh`, `mdl`
+
+:::{.callout-note}
+May be changed in future revisions.
+:::
 
 ### Index register
 

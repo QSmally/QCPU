@@ -11,7 +11,7 @@ website:
   navbar:
     left:
       - pages/index.qmd
-      - pages/cli.qmd
+      - pages/assembly.qmd
     right:
       - text: Guide
         href: guide/index.qmd

@@ -1,0 +1,794 @@
+---
+title: "Assembly"
+subtitle: "QCPU language reference"
+---
+
+QCPU CLI is a tool which includes an assembler, linker and emulator for the QCPU 2 specification.
+
+* [github.com/QSmally/QCPU-CLI](https://github.com/QSmally/QCPU-CLI)
+
+Often the most efficient way to learn something new is to see examples, so this documentation shows
+how to use each of QCPU CLI's (language) features. QCPU CLI is created with the [Zig programming language](https://ziglang.org)
+and can be compiled without any other dependencies. For starters, running `--help` shows the
+different options you may use:
+
+```{}
+
+    QCPU CLI
+    qcpu [option ...] file ...
+
+general options
+    --version
+    --help
+    --doptions
+    --verbose
+    --dry
+    --output string (default none)
+    --virtualise
+
+compilation unit options
+    --dload
+    --dtokens
+    --dast
+    --dair
+    --dlinker
+    --dnotrace
+    --noliveness
+    --noelimination
+    --noautoalign
+    --nodepthoptimisation
+    --nolinkwarnings
+    --rootsection string (default root)
+    --l1 u32 (default 32)
+    --page u32 (default 256)
+    --pagelen u32 (default 256)
+
+virtualiser options
+    --jit
+    --step
+    --maxcycles u64 (default 4096)
+    --iobatch u64 (default 16)
+    --result ?u16 (default none)
+    --mode mode (default direct)
+
+QCPU-CLI v0.0.0 (Zig 0.14.1) (macos, aarch64) dynamically linked in debug mode
+```
+
+## Root section and linking
+
+```{.asm}
+@section root
+@region 256
+@align 2
+
+_:                u16 .main         ; entrypoint
+
+@end
+
+@linkinfo(origin) root, 0
+@linkinfo(align) text, 256
+
+@section text
+.main:            bkpt
+```
+
+```{.txt}
+$ qcpu --dlinker root.s
+... (binary dump)
+$ qcpu --virtualise --step root.s
+```
+
+The QCPU assembler requires a `root` section (`--rootsection root`) in one of the input files. The
+root section is used to lazily evaluate the input symbols and perform dead tree elimination of
+unreferenced sections. For preserving data order, the root section can only be defined once and
+the linker will error if there are multiple.
+
+Linking order and placement is controlled with the `@linkinfo` builtin. Like the root section, only
+one file can specify `@linkinfo` builtins to preserve the linking order of the output binary.
+
+The listing above is the general skeleton of any program analysed with the QCPU assembler. It
+defines the data `root` section which references the entrypoint of the `text` executable section.
+
+## Instructions
+
+Like most assembly languages, instruction lines generally look like the following:
+
+```{.asm}
+label:            instr op, op      ; comments                            col 80
+```
+
+There are two supported types of comments, prefixed with `;` and `//`. QCPU assembly doesn't support
+multiline comments (like `/* */` in C). This allows the assembler to tokenise any line out of
+context.
+
+Instructions are taken from the [instruction reference](/) and operands are separated by commas,
+and a binary is generated in the final memory representation:
+
+```{.asm}
+                  mldw sp, -4       ; load from sp - 4
+```
+
+### Pseudo-instructinos
+
+Pseudo-instructions are formulated like normal instructions, but are interpreted by the assembler to
+produce a special kind of output.
+
+* `u8`, `i8`: a byte (unsigned or signed)
+* `u16`, `i16`: a word (unsigned or signed)
+* `u24`, `i24`: a 24-bit word (unsigned or signed)
+
+```{.asm}
+foo:              u16 0xEAEA
+```
+
+### Encoded pseudo-instructions
+
+A couple of special pseudo-instructions manage the encoding of data:
+
+```{.asm}
+str:              ascii "Hello world!"
+sentinel_str:     ascii "This is a C-like string" 0
+```
+
+```{.asm}
+                  reserve u8, 16    ; 1 * 16 null bytes
+                  reserve u16, 16   ; 2 * 16 null bytes
+```
+
+## Built-ins
+
+<!--
+Documentation of builtins can be retrieved with `--docs builtin`, like `--docs align`.
+-->
+
+Builtins are provided by the assembler and are prefixed with `@`.
+
+The following documentation is in alphabetical order, but it makes more sense to start to understand
+`@section` and `@linkinfo` before anything else, as those builtins provide the foundation for the
+assembly language. The underlying examples omit the root section and linkinfo boilerplate.
+
+### `@align`
+
+```{.asm}
+@align alignment
+```
+
+Emits some amount of padding bytes to conform to the set alignment during linkage. `alignment`
+must be non-zero and a power of two.
+
+```{.asm}
+@section example
+foo:              u8 0xEA
+@align 2
+bar:              u16 0xDEAD
+```
+
+```{.txt}
+$ qcpu --dlinker builtin-align.s
+... (omitted)
+@section example (size 4)
+builtin-align.foo        0100: 0b11101010    (234)
+                         0101: * 0b00000000   
+                         0102: 0b10101101    (57005)
+                         0103: 0b11011110
+```
+
+### `@barrier`
+
+```{.asm}
+@barrier
+```
+
+Splits the current section into another block, allowing dead tree elimination to remove unreached
+code paths in either sections. Similar to using `@section <same section name>`.
+
+```{.asm}
+@section example
+foo:              u16 0xDEAD        ; referenced by root
+
+@barrier
+bar:              u16 0xBEEF        ; unreferenced
+```
+
+```{.txt}
+$ qcpu --dlinker --noelimination builtin-barrier.s
+... (omitted)
+@section example (size 4)
+builtin-barrier.foo      0100: 0b10101101    (57005)
+                         0101: 0b11011110
+                         0102: 0b11101111    (48879)
+                         0103: 0b10111110
+```
+
+Note how the above command uses `--noelimination`. Because `.bar` is not referenced from root or its
+referenced sections, the barriered section would be eliminated by default:
+
+```{.txt}
+$ qcpu --dlinker builtin-barrier.s
+... (omitted)
+@section example (size 2)
+builtin-barrier.foo      0100: 0b10101101    (57005)
+                         0101: 0b11011110
+```
+
+### `@define`
+
+```{.asm}
+@define name, expression
+@define(expose) name, expression
+```
+
+Puts `name` as a symbol referring to `expression`, allowing it to be reused with `@name`.
+
+The `expose` option exposes this symbol for other files using `@import`.
+
+<!--
+Expressions currently lack logical or, and, xor
+-->
+
+```{.asm}
+@define(expose) deadbeef, (0xDE lsh 8) + 0xAD
+
+@section example
+foo:              u16 @deadbeef
+```
+
+```{.txt}
+$ qcpu --dlinker builtin-define.s
+... (omitted)
+@section example (size 2)
+builtin-define.foo       0100: 0b10101101    (57005)
+                         0101: 0b11011110
+```
+
+### `@end`
+
+```{.asm}
+@end
+```
+
+The following builtins require `@end` at the end of their opaque space:
+
+* `@header`
+* `@region`
+
+### `@header`
+
+```{.asm}
+@header name, arg, ...
+@header(expose) name, arg, ...
+```
+
+Puts `name` as a symbol to define reusable text/data which is unrolled during analysis.
+
+```{.asm}
+@header cs, reg, offset
+                  ast @reg
+                  mst sf, @offset
+@end
+
+@section example
+foo:              @cs ra, 4
+                  @cs rb, 8
+                  bkpt
+```
+
+```{.txt}
+$ qcpu --dlinker builtin-define.s
+... (omitted)
+@section example (size 10)
+builtin-header.foo       0100: 0b00001000    clr
+                         0101: 0b00001001    ast ra
+                         0102: 0b11100010    mst sf
+                         0103: 0b00000100    (4)
+                         0104: 0b00000000
+                         0105: 0b00001010    ast rb
+                         0106: 0b11100010    mst sf
+                         0107: 0b00001000    (8)
+                         0108: 0b00000000
+                         0109: 0b00000000    bkpt
+```
+
+### `@import`
+
+```{.asm}
+@import namespace, "path/to/file.s"
+```
+
+Puts `namespace` as a symbol and references the file located at the path. Sections in the file are
+evaluated, but will be eliminated unless labels are referenced or `--noelimination` is used.
+
+```{.asm}
+@import library, "builtin-import-2.s"
+
+@section example
+foo:              jmpr .library.foo
+```
+
+```{.txt}
+$ qcpu --dlinker builtin-import.s
+... (omitted)
+@section example (size 4)
+builtin-import-2.foo     0100: 0b00000000    bkpt
+                         0101: * 0b00000000
+builtin-import.foo       0102: 0b11010001    jmpr
+                         0103: 0b11111110    (-2)
+```
+
+### `@linkinfo`
+
+```{.asm}
+@linkinfo(origin) section, addr
+@linkinfo(align) section, alignment
+@linkinfo(maxaddr) section, addr
+@linkinfo(maxlen) section, len
+```
+
+`@linkinfo` executes linker commands. The order of operations matter in regards to the `maxaddr` and
+`maxlen` verification commands as they must be put after the section placement definition. Not
+specifying any linker commands will result in an empty binary output (an error will be given unless
+`--nolinkwarnings` is set).
+
+* `@linkinfo(origin)`: put `section` at the origin `addr`,
+* `@linkinfo(align)`: put `section` at the next available address where `alignment` alignments to,
+* `@linkinfo(maxaddr)`: provide an error if `section` exceeds max absolute address `addr`,
+* `@linkinfo(maxlen)`: provide an error if `section` exceeds max size `len`.
+
+The linker will provide an error if addresses overlap each other. A section identifier may be mapped
+twice or more, if really wanted.
+
+```{.asm}
+@section root
+@region 256
+@align 2
+
+_:                u16 .entrypoint
+
+@end
+
+@linkinfo(origin) root, 0
+@linkinfo(align) data, 64
+@linkinfo(align) bss, 64
+@linkinfo(align) text, 256
+
+@section data
+counter:          u8 0
+
+@section bss
+struct:           reserve u24, 4
+
+@section text
+entrypoint:       mld zr, .counter
+.loop:            inc zr
+                  jmpr .loop
+```
+
+```{.txt}
+$ qcpu --dlinker builtin-linkinfo.s
+@section root (size 256)
+                         0000: 0b00000000    (512)
+                         0001: 0b00000010
+... (omitted)
+@section data (size 1)
+builtin-linkinfo.counter 0100: 0b00000000    (0)
+@section bss (size 0)
+@section text (size 6)
+builtin-linkinfo.entrypoint 0200: 0b11110000    mld zr
+                         0201: 0b00000000    (256)
+                         0202: 0b00000001   
+builtin-linkinfo.loop    0203: 0b00101000    inc zr
+                         0204: 0b11010001    jmpr
+                         0205: 0b11111111    (-1)
+```
+
+### `@region`
+
+```{.asm}
+@region len
+```
+
+Ensures a region is a set size. Emits padding bytes if the opaque space is less than the set size,
+and provides an error if the opaque space exceeds the set size.
+
+```{.asm}
+@section example
+@region 8
+
+foo:              u16 0xDEAD
+                  u16 0xBEEF
+
+@end
+```
+
+```{.txt}
+$ qcpu --dlinker builtin-region.s
+... (omitted)
+@section example (size 8)
+builtin-region.foo       0100: 0b10101101    (57005)
+                         0101: 0b11011110
+                         0102: 0b11101111    (48879)
+                         0103: 0b10111110
+                         0104: * 0b00000000
+                         0105: * 0b00000000
+                         0106: * 0b00000000
+                         0107: * 0b00000000
+```
+
+### `@section`
+
+```{.asm}
+@section name
+@section(noelimination) name
+```
+
+Adds a section to the section list. The opaque section is until the next `@barrier` definition,
+another `@section` definition, or the end of file. `name` is not required to be unique, except the
+root section (`--rootsection root`).
+
+The `noelimination` option disregards this section for dead tree elimination, being emitted in the
+final generated binary even if it wasn't referenced by any other lived sections.
+
+Automatically adds section padding depending on the size of the used memory space. For example, a 10
+byte section will have an alignment of 16. Any section size above the L1 line size (`--l1 32`) will
+get an alignment of that cache line. An automatic alignment ensures that small sections don't cross
+over cache line boundaries. To remove this behaviour, use `--noautoalign`. Section alignment set
+through usage of `@align` is not overwritten.
+
+Read more at `@linkinfo`.
+
+## Types
+
+Headers can be used as reusable struct types. Take this example:
+
+```{.asm}
+@header Queue, type, len
+@align 2
+                  u16 0x0000        // head
+                  u16 0x0000        // tail
+                  reserve @type, @len
+@end
+
+@define queuelen, 16
+
+@section data
+queue:            @Queue u8, @queuelen
+```
+
+## Tree elimination
+
+Tree elimination provides removal of dead code paths. Paths are traversed using labels, starting
+with the root section (`--rootsection root`). To disable this behaviour, use `--noelimination` or
+the `@section(noelimination)` option.
+
+The linker performs lazy evaluation of the referenced sections. If sections only reference each
+other, but aren't referenced by the root tree, it will still be eliminated from the output binary.
+Due to the lazy evaluation, address calculation limits are also not performed for unreferenced
+sections:
+
+```{.asm}
+@section root
+@region 256
+@align 2
+
+_:                u16 .foo
+
+@end
+
+@linkinfo(origin) root, 0
+@linkinfo(align) example, 256
+@linkinfo(align) example2, 256
+@linkinfo(align) example3, 256
+@linkinfo(align) example4, 256
+@linkinfo(align) example5, 256
+
+; this section is referenced by the root section
+@section example
+foo:              u16 .example2
+
+; this section is referenced by a section from the root tree
+@section example2
+example2:         u8 0xEA
+
+; next sections are referencing each other, but are unreachable otherwise
+@section example3
+example3:         u16 0xFFFF lsh 8  ; this overflows u16, but it's not evaluated by the linker
+                  u16 .example4
+
+@section example4
+example4:         u16 .example3
+
+; this section is not referenced, but has the noelimination option
+@section(noelimination) example5
+example5:         u16 0xDEAD
+```
+
+```{.txt}
+$ qcpu --dlinker tree-elimination.s
+@section root (size 256)
+                         0000: 0b00000000    (256)
+                         0001: 0b00000001   
+... (omitted)
+@section example (size 2)
+tree-elimination.foo     0100: 0b00000000    (512)
+                         0101: 0b00000010   
+@section example2 (size 1)
+tree-elimination.example2 0200: 0b11101010    (234)
+@section example3 (size 0)
+@section example4 (size 0)
+@section example5 (size 2)
+                         0300: 0b10101101    (57005)
+                         0301: 0b11011110
+```
+
+## Liveness
+
+Liveness is a step performed after semantic analysis of the input assembly. Like warnings, liveness
+indicates any stupid assembly and harshfully errors if a scenario doesn't make sense. Its goal is to
+point out bugs ahead of execution time. Liveness can be disabled with the `--noliveness` flag, if
+really wanted.
+
+The following scenarios are checked against in the liveness pass:
+
+* Empty section definitions
+* Unlabeled instructions after unconditional jump or start of section
+* Consecutive register store operations to same location
+* Control flow spilling into padding or data
+* Unused private `.label`, `@define` or `@header` symbols
+
+For example, symbols defined in the file which aren't used or exposed (made public) should be
+removed:
+
+```{.asm}
+@define a, 5
+```
+
+```{.txt}
+$ qcpu unused-symbol.s 
+unused-symbol.s:2:1: error: unused private symbol
+@define a, 5
+^
+```
+
+Instructions that are present after an unconditional jump or start of a section should have an
+addressable label, and instructions that don't divert control flow shouldn't be at the end of
+sections:
+
+```{.asm}
+@section text
+                  imm ra, 0xEA
+.foo:             jmpr .foo
+                  mld zr, 0xBEEF
+```
+
+```{.txt}
+$ qcpu unreachable-text.s
+unreachable-text.s:3:19: error: unlabeled/unreachable instruction 'imm'
+                  imm ra, 0xEA
+                  ^
+unreachable-text.s:2:1: note: @section defined here
+@section text
+^
+unreachable-text.s:5:19: error: unlabeled/unreachable instruction 'mld'
+                  mld zr, 0xBEEF
+                  ^
+unreachable-text.s:4:19: note: control flow diverted here
+.foo:             jmpr .foo
+                  ^
+unreachable-text.s:5:19: error: execution flow reaches end of section
+                  mld zr, 0xBEEF
+                  ^
+```
+
+Execution spilling into data (e.g. `u8`) or padding is also protected against. There are certain
+builtins which produce possible padding bytes, such as `@region` and `@align`.
+
+```{.asm}
+@section text
+@region 16
+
+.foo:             imm ra, 0xDE
+                  imm rb, 0xAD
+
+@end
+
+                  jmpr .foo
+```
+
+```{.txt}
+$ qcpu pad-spilling.s
+pad-spilling.s:6:19: error: execution flow spills into padding
+                  imm rb, 0xAD
+                  ^
+pad-spilling.s:3:1: note: padding is generated here
+@region 16
+^
+```
+
+## Binary output
+
+Currently, it's not supported to get a raw, sectioned binary output format with QCPU CLI.
+
+The linker's formatted dump can be outputted with `--dlinker`:
+
+```{.txt}
+$ qcpu --dlinker call-stack.s 
+Linker:
+@section root (size 256)
+                         0000: 0b00000000    (256)
+                         0001: 0b00000001   
+                         0002: 0b00000000    (0)
+                         0003: 0b00000000   
+                         0004: 0b00000000    (0)
+                         0005: 0b00000000   
+                         0006: 0b00000000    (0)
+                         0007: 0b00000000   
+                         0008: 0b00000000    (512)
+                         0009: 0b00000010   
+                         000A: 0b00000000    (512)
+                         000B: 0b00000010   
+                         000C: * 0b00000000   
+                         000D: * 0b00000000   
+                         000E: * 0b00000000   
+                         000F: * 0b00000000   
+... (omitted)
+                         00FC: * 0b00000000   
+                         00FD: * 0b00000000   
+                         00FE: * 0b00000000   
+                         00FF: * 0b00000000   
+@section text (size 14)
+call-stack.main          0100: 0b11000000    imm zr
+                         0101: 0b00000101    (5)
+                         0102: 0b11010101    jmprl
+                         0103: 0b00000110    (6)
+                         0104: 0b00000000    bkpt
+                         0105: * 0b00000000   
+                         0106: * 0b00000000   
+                         0107: * 0b00000000   
+call-stack.subroutine    0108: 0b00110000    dec zr
+                         0109: 0b11001011    brh z
+                         010A: 0b00000100    (4)
+                         010B: 0b11010101    jmprl
+                         010C: 0b11111101    (-3)
+call-stack.ret           010D: 0b00000001    ret
+@section stack (size 256)
+call-stack.stack         0200: 0b00000000   
+                         0201: 0b00000000   
+                         0202: 0b00000000   
+                         0203: 0b00000000   
+... (omitted)
+```
+
+The linker dump provides a preview of the instructions and data of the generated binary. Bytes
+indicated with `*` are generated padding bytes by the assembler. Otherwise, they were set by an
+instruction. Labels are only shown if they were referenced (lazily evaluated) by the linker.
+
+## Virtualiser
+
+The virtualiser can emulate QCPU assembly and provide execution and debugging insight into programs.
+It's enabled with the `--virtualise` flag. To step through the program, use the `--step` flag,
+otherwise the program will run automatically until `--maxcycles 4096` total cycles.
+
+Currently, only `--mode direct` is supported. Memory virtualisation (`--mode exec`) is not.
+
+## Architectural concepts
+
+### The stack
+
+The QCPU assembler doesn't understand the concept of a stack. The emulator, however, reads from a
+specific root address to initialise the `sf` and `sp` special registers. They can be set to a custom
+section:
+
+```{.asm}
+@section root
+@region 256
+@align 2
+
+_:                u16 .main         ; entrypoint
+                  reserve u16, 3
+                  u16 .frame        ; sf
+                  u16 .ptr          ; sp
+
+@end
+
+@linkinfo(origin) root, 0
+@linkinfo(align) text, 256
+@linkinfo(align) stack, 256
+
+@section text
+.main:            bkpt
+
+@section stack
+@region 512
+
+.frame:           u16 .main         ; some stack base values
+                  u16 0xDEAD
+                  u16 0xBEEF
+.ptr:             reserve u8, 0     ; pointer head
+
+@end
+```
+
+### Interrupts
+
+Interrupts are not supported in the emulator yet.
+
+### Mapped memory
+
+Virtual memory is not supported in the emulator yet.
+
+### Memory mapped I/O
+
+Memory mapped I/O is not supported in the emulator yet.
+
+## Assembly grammar
+
+Abstract Syntax Tree grammar:
+
+```{.txt}
+Root <- TopBuiltin* Eof
+
+TopBuiltin <- Builtin / Section
+Builtin <- SimpleBuiltin / IndentedBuiltin
+SimpleBuiltin <- SimpleBuiltinIdentifier (LParan OptionList RParan)? ArgumentList Eol
+IndentedBuiltin <- IndentedBuiltinIdentifier (LParan OptionList RParan)? ArgumentList Eol Opaque End Eol
+Section <- SectionBuiltinIdentifier Identifier Eol Opaque [^Section]
+SimpleBuiltinIdentifier <- '@barrier' / '@define' / '@import' / '@linkinfo'
+IndentedBuiltinIdentifier <- '@align' / '@header' / '@region'
+SectionBuiltinIdentifier <- '@section'
+End <- '@end'
+
+OptionList <- (Option Comma)* Option?
+Option <- 'expose' / 'noelimination'
+
+ArgumentList <- (Expression Comma)* Expression?
+
+Expression <- (Expression BinaryOperation)* UnaryExpression
+BinaryOperation <- '+' / '-' / '*' / 'lsh' / 'rsh'
+
+UnaryExpression <- UnaryOperation? PrimaryExpression
+UnaryOperation <- '-' / '!'
+
+PrimaryExpression <-
+         GroupedExpression /
+         Integer /
+         Identifier /
+         String /
+         Character /
+         Reference /
+         PseudoOpcode /
+         ReservedArgument
+GroupedExpression <- '(' Expression ')'
+Integer <- Decimal / Binary / Hexadecimal
+Decimal <- [0-9] [0-9]*
+Binary <- '0b' [01] [01]*
+Hexadecimal <- '0x' [0-9a-fA-F] [0-9a-fA-F]*
+Identifier <- [@a-zA-Z] [a-zA-Z0-9]*
+Character <- '\'' . '\''
+ReservedArgument <- 'ra' / 'rb' / 'rc' / 'rd' / 'rx' / 'ry' /
+    'rz' / 's' / 'ns' / 'z' / 'nz' / 'c' / 'nc' / 'u' / 'nu' /
+    'sf' / 'sp' / 'xy'
+
+Reference <- Dot Identifier (Apostrophe ReferenceSelector)?
+ReferenceSelector <- 'l' / 'h'
+
+String <- '"' .* '"' Integer?
+
+Opaque <- (Builtin / Instruction)*
+
+Instruction <- (Label Eol)* Label? AnyOpcode ArgumentList Eol
+AnyOpcode <- Opcode / PseudoOpcode / TypedOpcode
+Opcode <- 'ast' / ...
+PseudoOpcode <- 'ascii' / 'i16' / 'i24' / 'i8' / 'u16' / 'u24' / 'u8'
+TypedOpcode <- 'reserve'
+
+Label <- PublicLabel / PrivateLabel
+PublicLabel <- Identifier Colon
+PrivateLabel <- Dot Identifier Colon
+
+Dot <- '.'
+Comma <- ','
+Colon <- ':'
+Apostrophe <- '\''
+Eol <- ('//' .*)? (';' .*)? '\n'
+Eof <- '\0'
+```
