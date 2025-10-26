@@ -1,38 +1,29 @@
 
 // QCPU 2 assembly syntax snippet
 
-; this define would be from @symbols "kernel/sysc.s"
-; a kext may also be from @symbols "kernel/kernel.s"
+; this define would be from @import "lib/sysc.s"
 @define fopen 0x05
 @define mmap 0x07
 
-@section global ; shared by threads, fixed size
+@section data
 
-.path:      ascii "/etc/fstab" 0x00 ; ascii is just u8 with explicit encoding
-.pathsz:    u8 .pathsz - .path      ; expressions
-.pathptr:   u16 .path               ; path gets read as 16 bits
+.path:            ascii "/etc/fstab" 0x00 ; ascii is just u8 with explicit encoding
+@align 2                                  ; u16 must be aligned to 2 bytes
+.pathsz:          u16 .pathsz - .path     ; expressions
+.pathptr:         u16 .path               ; path gets read as 16 bits
 
-@section empty ; shared by threads, empty, fixed size
+@section empty
 
-.reserved:  reserve u16 128
-
-@section local ; thread local, fixed size
-
-.localvar0: reserve u8 24           ; reserve 24 bytes
-.localvar1: reserve u16 24          ; reserve 48 bytes
-.localvar2: u32 0x1234 0x5678       ; initialise 4 bytes
+.reserved:        reserve u8 256
 
 @section text ; readonly, executable
 
-main:       imm   rx    .path       ; 'main' must be a public label for linking
-            imm   ry    .path'u     ; upper byte syntax 'u, for u8 implicitly 'l
-            imm   rz    0b00000000  ; fopen mask
-            sysc  @fopen            ; fopen(pathl, pathh, msk) -> (,, fd)
-            imm   rx    0x00        ; size low byte
-            imm   ry    0x04        ; size high byte, 1024
-            sysc  @mmap             ; mmap(sizel, sizeh, fd) -> (addrl, addrh)
-            msp         0x0002
-            ast   rx
-            ast   ry
-            mstw  sp    -2          ; store at recently allocated stack location
-.spinlock:  jmpr        .spinlock   ; execs should end with sysc @exit, not lock
+main:             lui x1, .path'u         ; 'main' is exposed, for @linkinfo elsewhere
+                  ioriu x1, .path         ; lower LSB is implicit, 'u is upper byte
+                  lli x2, 0x00            ; fopen mask
+                  sysc @fopen             ; fopen(pathptr, mask) -> fd
+                  lui x2, 1024 lsh 8      ; mmap size
+                  sysc @mmap              ; mmap(fd, size) -> ptr
+                  addi sp, -2             ; or alloc -2 pseudoinstruction
+                  mstw x1, sp, 0          ; store at sp
+.spinlock:        jmpr .spinlock          ; execs should end with sysc @exit

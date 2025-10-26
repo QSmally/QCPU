@@ -14,6 +14,6 @@ RUN ./configure.sh
 
 COPY publish/render.sh /docker-entrypoint.d/90-render.sh
 
-env QUARTO_PRINT_STACK=true
+ENV QUARTO_PRINT_STACK=true
 ENV QUARTO_LOG_LEVEL=DEBUG
 VOLUME /Content

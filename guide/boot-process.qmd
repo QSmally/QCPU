@@ -1,91 +1,135 @@
 ---
 title: "Boot process"
 description: "A CPU's first steps and different execution modes."
-date: 2024-02-4
+date: 2025-10-12
 categories: [memory, control-flow]
 ---
 
-Similarly to x86's unprotected and protected control modes, QCPU is able to run in two different
-execution modes: direct and exec @control-methods. A 'direct' execution mode turns off the virtual
-memory system and starts up differently than the 'exec' mode. Each have their benefit. For simple,
-non-operating system programs, the 'direct' execution mode can be used to remove the overhead of
-loading in the kernel, reduce the response time of the program, amongst other tasks
-@intel-64-ia32 [chap. 3.1].
-
-## Physical memory layout
-
-Section 'I/O' of the 'Physical devices' chapter mentions the initial physical memory pages that are
-used by the configuration. There are 24 total pages mapped to I/O devices, which are all 256 byte
-register files to communicate with their respective devices. The 232 rest pages are managed by the
-main memory port @arm-memory-management [chap. 3].
-
-Two built-in I/O devices are present in the QCPU microcontroller's physical memory:
-
-* `Boot` sector ROM device [`0`] (processor/kernel control block),
-* `CSRs` device [`1`] (interaction points with hardware).
+On reset, all QCPU features (e.g. prot, virtual memory) are disabled and the
+microprocessor jumps to the `0x0800` entrypoint in physical memory. For any
+direct application or kernel, the first step to perform is to set up a stack
+pointer and enable kernel logical mapping.
 
 ```
-0       1      2              23 24                 255
-[ boot | csrs | ... devices ... | ... main memory ... ]
-               v   v             v
-example:       tty storage       kernel
-                   controller
+                 64 KiB
+                (16 bit)
+0x0000                   0xC000   0xFFFF
+   |------------------------|--------|
+   | userland               | kernel |
+     48 KiB                   16 KiB
 ```
-[^1]
 
-The start-up content and behaviour of the 'boot' sector device differs between the two processor
-execution modes explained in both @sec-direct and @sec-exec.
+QCPU has a single virtual address space, divided into multiple regions. For
+hardware simplicity, the kernel-protected region from `0xC000` is fixed.
 
-[^1]: Storage controller may be integrated into CSRs for memory references
+## Setting up a stack
 
-### Execution mode: 'direct' {#sec-direct}
+A stack is configured by setting the `sp` register. It grows downwards, as
+memory operations take a static unsigned immediate as offset, so the stack
+pointer is set to the last element in the region.
 
-In direct mode, the virtual memory system maps each address to the same physical memory address.
-Kernel mode restrictions are disabled. The virtual memory essentially functions as a 'linear'
-address map compared to the three-step map process (`kfixed`, `kvariable` and `userland`).
+```
+@section stack
+@align 256
+@region 512
+@define slen, 512
+@define sbase, .top + @slen
 
-### Execution mode: 'exec' {#sec-exec}
+.top:             reserve u8, @slen       ; top of stack
 
-In exec mode, upon booting, the microcontroller loads physical page zero at the `kfixed` region and
-jumps to the entrypoint given in the control block (which is the 'boot' sector device). The CPU
-begins in kernel mode. An entrypoint program (like a bootloader, to later expand to a kernel when
-it's loaded from a persistent storage device) is expected to be loaded at the address of the
-entrypoint.
+@end
 
-### Process/CPU Control Block
+@section root
+@align 2
 
-A 'control' block registers which addresses to use for the processor as well as parameters for a
-userspace application. Like an entrypoint address, they configure QCPU's runtime. Typically, in exec
-mode, the control block is also used for userland sections. The control block resides at the root
-page of virtual memory (addresses `0..256`). For the kernel, it's located at the physical root page.
+_:                lui sp, @sbase rsht 8
+                  bkpt
+```
 
-On reset, QCPU jumps to the entrypoint address given in the boot sector (and freshly loads it from
-physical memory section 0 on rising edge).
+For allocating to the stack, use the `alloc` pseudoinstruction:
 
-The control block is immutable. For mutating addresses, the kernel must copy them to a secondary
-tracking page which is updated every switch of userspace contexts.
+```
+                  alloc -4                ; 4 bytes
+                  mstw x1, sp, 0          ; sp+0/1 = x1
+                  mstw x2, sp, 2          ; sp+2/3 = x2
+```
 
-* Entrypoint address [`0, 1`]
-* ... (mode specific)
-* Frame address (stack base) [`8, 9`]
-* Pointer address (top-of-stack) [`10, 11`]
-* ... (mode specific)
+## Kernel space
 
-**Kernel (boot sector)**:
+Kernel space is divided into two parts: logical space, and virtually-mapped
+space:
 
-* Interrupt address [`2, 3`]
-* Reserved address [`4, 5`]
-* Processor flags (defined below section) [`6, 7`]
-* `kfixed` address to memory map `kvariable` (upper byte) [`12`]
-* `kvariable` address to memory map `userland` (upper byte) [`13`]
+```
+                      16 KiB
+          0xC000      0xF000      0xFFFF
+             |-----------|-----------|
+ | userland  | kfixed    | kvariable |
+               12 KiB      4 KiB
+```
 
-**Userspace**:
+Kernel text and global data is put in the logical `kfixed` space. Note how there
+exists two virtually-mapped regions in the virtual memory address space:
+userland and kernel-protected virtual memory. These regions are configured
+independently through the CSRs.
 
-* None
+For architectural simplicity, address `0xC000` is the fixed watermark of the
+kernel. Any pages above the watermark are kernel-protected when in
+kernel-protected mode (enabled in the `ft` CSR).
 
-**Processor flags (for boot sector, LSB first)**:
+System calls, and any other hardware interrupt, put the CPU into kernel mode
+and jump to designated parts of kernel space (configured in the `vec` CSR). If
+any other operation in userland tries to access kernel space, a page fault is
+triggered. Jumping out of kernel space exits kernel mode. Memory accesses from
+within kernel mode are allowed anywhere, given that a page mapping exists.
 
-* Memory virtualisation enabled (exec mode),
-* Interrupts enabled,
-* Branch Target Buffer enabled,
-* Branch Target Identification enabled.
+## Kernel logical space
+
+Kernel logical space is one of two virtual memory mapping types. When the
+kernel-protection bit is set in the `ft` CSR, virtual region `0xC000` - `0xFFFF`
+is mapped to its equivalent starting from `0x0000` in physical memory.
+
+```
+@section root
+@align 2
+
+// executed in 0x0800 physical memory
+
+_:                lli x1, 0b00000001      ; enable bit for kp/kernel-protect
+                  csrw x1, 0x043          ; write features
+                  flsh                    ; flush on next jump
+                  jmp .kmain              ; absolute jump to virtual memory addr
+
+// executed in 0xC8XX logical memory
+
+@align 32
+
+.kmain:           bkpt
+
+// linked as virtual memory, so don't try to use labels in the time
+// we're in physical memory, except when jumping to the virtual-translated
+// entrypoint after flush
+
+@linkinfo(origin) root, 0xC800
+```
+
+With kernel protection/logical mapping disabled, the CPU is in kernel mode, and
+therefore doesn't trigger a page fault going into the now kernel-protected
+space.
+
+## Page mapping
+
+Page mapping translates virtual pages to physical pages through the kernel's
+page table. There are two page table CSRs available: `pmat` and `pmatk`
+(physical memory address translation user/kernel, respectively). They hold the
+address to the separate page tables.
+
+Cleverly, having two page tables allows the kernel to switch userland by
+updating the `pmat` CSR only, keeping kernel mappings intact.
+
+```
+                 64 KiB
+ {           }---------\/{           }
+ |-----------|---------MM|-----------|
+ | userland  | kfixed    | kvariable |
+   48 KiB      12 KiB      4 KiB
+```

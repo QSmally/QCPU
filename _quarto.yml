@@ -11,6 +11,7 @@ website:
   navbar:
     left:
       - pages/index.qmd
+      - pages/csrs.qmd
       - pages/assembly.qmd
     right:
       - text: Guide

@@ -1,6 +1,4 @@
 
-version: "3.5"
-
 services:
   qcpu-qsmally-org:
     restart: always
@@ -22,8 +20,8 @@ services:
     networks:
       - default
       - qcpu-network-bridge
-    # ports:
-    #   - 80:80
+    ports:
+      - 80:80
 
 networks:
   qcpu-network-bridge:

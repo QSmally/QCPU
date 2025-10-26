@@ -1,116 +1,83 @@
 ---
 title: "Memory architecture"
-subtitle: "A look into QCPU's memory system"
-description: "QCPU's 16 bit virtual memory and its addressing modes."
-date: 2023-10-8
+description: "A look into QCPU's memory system"
+date: 2025-10-10
 categories: [memory]
 ---
 
-...
+QCPU is a load-store architecture. A memory instruction is composed of a source
+or destination register, an address register, and a 5 bit unsigned immediate:
 
-## Memory access
-
-A memory instruction (which is either `mst` or `mld` and their word equivalent) can be composed like
-the following:
-
-```{.asm}
-instr <dynamic:1> <register:2>, low byte, high byte
+```
+instr <source or destination>, <address>, <5 bit uimm>
 ```
 
-Dynamic offsets is a bit whether to add an 8 bit accumulator offset to the address, indicated by `'`
-after the instruction. For the register selection, it's a special or index register used in the
-address calculation:
-
-| id   | short | description                                                 |
-|------+-------+-------------------------------------------------------------|
-| `00` |       | none                                                        |
-| `01` | `sf`  | stack frame (user or kernel depending on current context)   |
-| `10` | `sp`  | stack pointer (user or kernel depending on current context) |
-| `11` | `idx` | general-purpose index register (`rx` and `ry`)              |
-
-Special registers have a user and kernel copy. They aren't addressable in userspace, but can be
-written to using the DMAC in kernel space or implicitly through certain instructions (like
-mutating the stack pointer with `msp`).
-
-Depending on the processor's current context (either user or kernel mode), operations using the
-special registers will vary between the two copies. For example, if a system call is done in
-userland, the stack immediately switches to the kernel's location.
+A memory instruction operates on the lower 8 bits of the source or destination
+register. Each memory instruction has an associated instruction to operate on
+words (the full 16 bit register).
 
 ## Address resolution
 
-Like for the `imm` (load immediate) and `addi` (add with immediate, and alike) instructions
-described in the diagrams below, the memory instructions use an instruction constant. For memory
-instructions specifically, it's a 2 byte, little-endian immediate.
+A 5 bit unsigned immediate can be provided as offset to the memory instruction.
+For byte-sized accesses, the immediate has a range of 0-31. For word-sized
+accesses, the immediate is left shifted for a range of 0-63, aligned by 2 bytes,
+and chops off the LSB of the resolved address.
 
-::: {.pipeline}
-| fetch               | fetch | decode        | decode | execute     | writeback      |
-|---------------------+-------+---------------+--------+-------------+----------------|
-| `imm`               |       |               |        | through alu | written to acc |
-| value for immediate |       | ready for alu |        |             |                |
-:::
+Memory from a pointer (e.g. allocated by the kernel) can be used like so:
 
-::: {.pipeline}
-| fetch               | fetch | decode        | decode | execute            | writeback      |
-|---------------------+-------+---------------+--------+--------------------+----------------|
-| `ast ra`            |       | load `ra`     |        | through alu        | written to acc |
-| `addi`              |       |               |        | add value with acc | written to acc |
-| value for immediate |       | ready for alu |        |                    |                |
-:::
-
-The full address calculation pipeline is shown in the pipeline diagram below. Memory instruction
-`mldw'` loads a word from memory with an additional dynamic offset (the accumulator store prefixing
-the instruction) and the index registers.
-
-Together, the address is calculated as `[dynamic offset +] instruction constant + register`.
-
-::: {.pipeline}
-| fetch       | fetch | decode                    | decode | execute               | writeback                      |
-|-------------+-------+---------------------------+--------+-----------------------+--------------------------------|
-| `ast rz`    |       | load `rz`                 |        | through alu           | written to acc, dynamic offset |
-| `mldw' idx` |       | load `rx`                 |        | rx + imml             | dynamic offset                 |
-| low byte    |       | load `ry`, low byte ready |        | ry + imml prop. carry | dynamic offset prop. carry     |
-| high byte   |       | high byte ready           |        |                       | invalidate instr.              |
-| sync recall |       |                           |        |                       |                                |
-| `rst ra`    |       |                           |        | write to reg          |                                |
-| `rst rb`    |       |                           |        | write to reg          |                                |
-
-:::
-
-The immediate and register is calculated through the ALU, but the dynamic offset is calculated with
-a hardware-accelerated component. Note that the intermediate address is put through in two separate
-bytes. The dynamic offset component consists of an adder (adding the previous accumulator value and
-the low byte of the intermediate address) and a conditional incrementer (if a carry-out was present
-in the addition of the previous cycle, an increment is done for the high byte).
-
-<!--
-TODO: could be in the alu instead of hardware component, it doesn't really have any performance impact
--->
-
-## Reference indirection
-
-An indirect access is done by loading two bytes from an arbitrary memory location and storing the
-result into the index registers. This can be combined with another access using `idx` as address
-register.
-
-```{.txt}
-mldw        0x0000        ; load first address
-rst   rx
-rst   ry
-mld   idx   0x0000        ; load from indirect address
-rst   ra
 ```
+                  mld t1, x1, 0           ; loads from ptr x1 into t1
+```
+
+Memory can be addressed by the stack pointer, like so:
+
+```
+                  mldw x1, sp, 0          ; loads sp+0 in x1
+                  mldw x2, sp, 2          ; loads sp+2 in x2
+```
+
+To address memory on an assemble-time known address, it must be first loaded
+into a register. If the memory address sits against the page boundary in a 32
+or 64 byte range, for byte-sized and word-sized respectively, it can be done
+with a single `lui` instruction. Otherwise, an additional `ioriu` instruction
+must be added to saturate the address with the lower byte:
+
+```
+                  lui t1, 0xEA            ; load upper byte
+                  mld x1, t1, 0           ; loads 0xEA00 into x1
+```
+
+```
+                  lui t1, 0xBE            ; load upper byte
+                  ioriu t1, 0xEF          ; ORs lower byte
+                  mld x1, t1, 0           ; loads 0xBEEF into x1
+```
+
+Addresses relative to the current instruction pointer can be calculated by
+reading the `ip` CSR:
+
+```
+                  csrr t1, 0x02
+                  addi t1, $ - .label - 2
+                  mld x1, t1, 0
+```
+
+## Memory operations
+
+Prefetching from memory is done by loading into `zr`, which discards the result.
+
+Resetting memory (setting a byte or word to 0) is done by storing `zr` to the
+destination.
+
+## Atomics
+
+... atomics
 
 ## Async memory
 
-Fetching from memory takes time, especially when a cache miss is present. To combat this more
-efficiently, results from memory can be asynchronously written to a temporary register set and read
-from later. If the register is still 'pending', the processor will stall until it resolves the
-register.
-
-```{.txt}
-mldw        0x0000        ; load first address
-amra                      ; mark buffer a as pending
-
-amr   mal                 ; move register a, low byte, into acc
-amr   mah                 ; move register a, high byte, into acc
-```
+Memory accesses are asynchronous. If a read happens to a destination register,
+the GPR's async resolved bit is reset. A read operation on that register stalls
+the CPU when the async operation is not yet resolved. Memory writes are queued
+in the same way, but can only be awaited using the `fence` pseudoinstruction.
+Atomic instructions (`aswp` family of instructions) are also async, but atomic
+with symmetric multiprocessing.

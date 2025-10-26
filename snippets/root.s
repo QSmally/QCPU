@@ -1,14 +1,13 @@
 
 @section root
-@region 256
 @align 2
 
-_:          u16 .main       // entrypoint
-
-@end
-
-@linkinfo(origin) root, 0
-@linkinfo(align) text, 256
+_:                jmpr .entrypoint
 
 @section text
-.main:      bkpt
+@align 2
+
+.entrypoint:      bkpt
+
+@linkinfo(origin) root, 0xC800
+@linkinfo(align) text, 32

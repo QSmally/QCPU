@@ -22,5 +22,5 @@ $ docker compose up -d # view at localhost:80
 
 * [QOS](https://github.com/QSmally/QOS): a Unix-like operating system for QCPU 2,
 * [QCPU-Programs](https://github.com/QSmally/QCPU-Programs): a collection of generic programs and subroutines,
-* [QCPU-CLI](https://github.com/QSmally/QCPU-CLI): a compiler/assembler/emulator development suite,
-* [QCPUC-Core](https://github.com/QSmally/QCPUC-Core): stdlib of the Objective C language interface.
+* [QCPU-CLI](https://github.com/QSmally/QCPU-CLI): an assembler/emulator suite,
+* [QMon](https://github.com/QSmally/QMon): Wozmon for QCPU 2.

@@ -1,28 +1,26 @@
 
 @section root
-@region 256
 @align 2
 
-_:                u16 .main         // entrypoint
-                  reserve u16, 3
-                  u16 .frame        // sf
-                  u16 .ptr          // sp
+_:                lui sp, (.top + @slen) rsh 8
+                  jmpr .entrypoint
 
 @end
 
-@linkinfo(origin) root, 0
-@linkinfo(align) text, 256
+@linkinfo(origin) root, 0xC800
+@linkinfo(align) text, 32
 @linkinfo(align) stack, 256
 
 @section text
-.main:            bkpt
+@align 2
+
+.entrypoint:      bkpt
 
 @section stack
+@align 2
 @region 512
+@define slen, 512
 
-.frame:           u16 .main         // some stack base values
-                  u16 0xDEAD
-                  u16 0xBEEF
-.ptr:             reserve u8, 0     // pointer head
+top:              reserve u8, @slen       ; top of stack
 
 @end

@@ -1,0 +1,137 @@
+---
+title: "Physical memory and I/O"
+description: "Physical memory, Memory Mapped I/O and address translation."
+date: 2025-10-12
+categories: [memory, io, addressing]
+---
+
+Physical memory consists of Memory Mapped I/O (MMIO), the loaded kernel on
+reset, and empty space (presumably garbage). Both the virtual and physical
+space address are 16 bits. When the reset line is high, all QCPU features are
+disabled and the microprocessor jumps to the entrypoint address in non-protected
+non-virtual mode. Entrypoint of QCPU is located at `0x0800`.
+
+| Address  | Name        | Description              | Bytes      |
+|----------+-------------+--------------------------+------------|
+| `0x0000` | rtdebug     | debug registers          | 256        |
+| `0x0100` | 16550a uart | tty0                     | 8          |
+| `0x0108` | 16550a uart | tty1                     | 8          |
+| `0x0110` | 16550a uart | tty2                     | 8          |
+| `0x0118` | 16550a uart | tty3                     | 8          |
+| `0x0120` | ic          | interrupt controller     |            |
+|          |             |                          |            |
+| `0x0800` | kernel      | reset/entrypoint address | max 12 KiB |
+|          | empty       |                          | variable   |
+
+The benefit of virtual address spaces is to sandbox application processes
+(hiding the resources of one application from another application) and to
+provide abstraction from the underlying hardware @arm-memory-management [chap. 3].
+
+```
+*----------*             *----------*    +- devices interface -+
+|          |             |          | ___ I/O 0 rtdebug        |
+|  64 KiB  |             |  64 KiB  | ___ I/O 1 uart ...       |
+|          | per-process |          | ___ I/O 2 diskio         | ---
+| virtual  | ___ MMU ___ | physical | ___ I/O ...              |    |
+| memory   |   mapping   | memory   | ___ I/O 7                |    |
+|          |             |          |                          |   *------------*
+|          |             |          | ___ main memory          |   | persistent |
+|          |             |          |                          |   | storage    |
+*----------*             *----------*    +-                   -+   *------------*
+```
+
+In QCPU, there are two kinds of virtual memory mappings: linear logical mapping,
+and page mapping. Like in the Linux and FreeBSD kernels, the kernel itself is
+logically mapped to the top part of the address space. Surrounding parts of the
+address space is mapped by userland memory (`pmatu` CSR) and variable memory
+(`pmatk` CSR). One of the first thing a kernel (like the QOS kernel) does,
+besides setting up a stack space, is enable logical mapping (`kp`
+kernel-protection bit in the `ft` CSR) and perform a flushing jump to somewhere
+in the protected `0xC000` region. Virtual memory is explained in another thread.
+
+## Address alignment
+
+```
+                16 bit
+15                 7                  0
+|------------------|------------------|
+| physical address | page offset      |
+  8 bit              8 bit
+                     256 byte page size
+```
+
+A physical address is 8 bits together with an 8 bit offset. A physical page is
+therefore 256 bytes. Virtual addresses translate the high byte to a physical
+address through the page translation table.
+
+```
+                16 bit
+15                 7                  0
+|------------------|------------------|
+| physical address | page offset      |
+|------------------|- - - - - - - - - |
+| virtual address    offset           |
+```
+
+Due to the nature of the physical page mapping, kernel allocations can only
+provide 256 byte pages to userland processes using the system call interface.
+To handle smaller allocations, userland could implement allocators (with
+different strategies, creating a reduction in calls to the kernel) @gnu-allocator.
+
+## Memory Management Unit
+
+The Memory Management Unit (MMU) uses tables set by the `pmatu` and `pmatk` CSRs
+(physical memory address translation user/kernel, repsectively). The physical
+mapping along with flags are 2 bytes per page:
+
+0. Flags
+    - Valid
+    - Cacheable -- for MMIO
+    - Readonly
+    - Copy-on-write
+    - Executable
+    - Reserved
+    - Reserved
+    - Reserved
+1. Physical address
+
+## Memory Mapped I/O
+
+Physical address range `0x0000` to `0x0800` is mapped to I/O devices. These I/O
+devices are put in memory to enable shared Symmetric Multi-Processing (SMP)
+access, unlike CSRs, which are processor-specific.
+
+Interrupts are disabled on reset, and must be globally enabled using the `int`
+feature in the CSR. The interrupt vector must be configured in the `vec` CSR.
+
+Interrupts are split in major and minor numbers. The major number identifies
+where the interrupt was caused from, e.g. system call or a specific uart
+controller, and the minor number is its action. For example, `timer0` (major)
+can signal its `compl` (minor) interrupt, and `sysc` (major) can signal a
+specific system call (minor).
+
+| Major | Minor          | Name      | Description                      |
+|-------+----------------+-----------+----------------------------------|
+| 0     | Call number    | **sysc**  | System call                      |
+| 1     | System         | **sys**   | System (general)                 |
+| 1     | Timer specific | timer0    | timer expired                    |
+| 2     | Timer specific | timer1    | timer expired                    |
+| 3     |                | yield     | yield counter threshold exceeded |
+| 4     | Uart specific  | tty0 uart | uart0                            |
+| 5     | Uart specific  | tty1 uart | uart1                            |
+| 6     | Uart specific  | tty2 uart | uart2                            |
+| 7     | Uart specific  | tty3 uart | uart3                            |
+| 8     | Input          | rtdebug   |                                  |
+
+Furthermore, when an interrupt is caused, the non-executed instruction pointer
+of the previous state is written to the `irp` CSR. The interrupt-pending `pen`
+CSR is set to one and must be reset when the interrupt can be interrupted.
+Lastly, the `int` CSR is written to with the major and minor byte of the
+interrupt.
+
+A system interrupt is provided by QCPU itself:
+
+* `pagef` - page fault (unmapped or non-permissive)
+* `cow` - copy on write
+
+A system call is caused by an instruction, and is specific to the loaded kernel.

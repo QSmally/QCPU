@@ -1,162 +1,170 @@
 ---
 title: "Instruction set"
-subtitle: "QCPU 2 5-3-(8/16) reference"
+subtitle: "QCPU 2 5-3-2-3-3 reference"
 ---
 
 ::: {.instruction-set .column-screen}
-| QCPU 2        | Short    | Description                         | B | Representation                                   | Notes                                                      |
-|---------------+----------+-------------------------------------+---+--------------------------------------------------+------------------------------------------------------------|
-| `0-0000-000`  | **bkpt** | Breakpoint                          | 1 |                                                  |                                                            |
-| `0-0000-001`  | **sysc** | System call interrupt               | 2 | acc = imm, call int(sysc)                        | interrupt performs link on kernel stack                    |
-| `0-0000-010`  | **ret**  | Pull from stack and jump            | 1 | pcl, pch = \*2(sf); sfl, sfh = \*2(sf + 2)       | takes 4 memory reads, stalls                               |
-| `0-0000-011`  | **msp**  | Allocate on stack                   | 2 | sp += amount                                     | restore acc?                                               |
-| `0-0000-100`  | **nta**  | NOT accumulator                     | 1 | acc = !acc                                       |                                                            |
-| `0-0000-101`  |          | Reserved                            |   |                                                  |                                                            |
-| `0-0000-110`  |          | Reserved                            |   |                                                  |                                                            |
-| `0-0000-111`  |          | Reserved                            |   |                                                  |                                                            |
-| `0-0001-###`  | **ast**  | Accumulator store                   | 1 | acc = *reg*                                      | zr -> clear acc (**clr**)                                  |
-| `0-0010-###`  | **xch**  | Accumulator exchange with register  | 1 | acc = *reg*/*reg* = acc                          | zr -> clear acc?                                           |
-| `0-0011-###`  | **stg**  | Accumulator stage for writeback     | 1 | acc = *reg*; ...; *reg* = acc                    | stg rx, add ry (rx += ry); stg rx, bsl 2 (rx *= 4)         |
-| `0-0100-###`  | **rst**  | Register store                      | 1 | *reg* = acc                                      | zr -> no operation (**nop**)                               |
-| `0-0101-###`  | **inc**  | Increment register                  | 1 | *reg* += 1                                       | zr -> acc                                                  |
-| `0-0110-###`  | **dec**  | Decrement regsiter                  | 1 | *reg* -= 1                                       | zr -> acc                                                  |
-| `0-0111-###`  | **neg**  | Negate register                     | 1 | *reg* = -*reg*                                   | zr -> acc                                                  |
-| `0-1000-###`  | **rsh**  | Right shift register                | 1 | *reg* >>= 1                                      | zr -> acc                                                  |
-| `0-1001-###`  | **add**  | Addition                            | 1 | acc += *reg*                                     | zr -> acc add imm (**addi**) signed                        |
-| `0-1010-###`  | **addc** | Addition with carry propagation     | 1 | acc += *reg* + 1 if carry                        | zr -> only carry, carry flag taken 2 instructions before   |
-| `0-1011-###`  | **sub**  | Subtraction                         | 1 | acc -= *reg*                                     | zr -> ?                                                    |
-| `0-1100-###`  | **subb** | Subtraction with borrow             | 1 | acc -= *reg* - 1 if !carry                       | zr -> flood B side, carry flag taken 2 instructions before |
-| `0-1101-###`  | **ior**  | Bitwise incl. OR (insert bits)      | 1 | acc \|= *reg*                                    | zr -> acc ior imm (**iori**)                               |
-| `0-1110-###`  | **and**  | Bitwise AND (mask/remove bits)      | 1 | acc &= *reg*                                     | zr -> acc and imm (**andi**) andi imm is inverted?         |
-| `0-1111-###`  | **xor**  | Bitwise excl. OR (toggle bits)      | 1 | acc ^= *reg*                                     | zr -> acc xor imm (**xori**)                               |
-| `1-0000-###`  | **bsl**  | Barrel shift left                   | 1 | acc <<= *amount*                                 | zr -> async memory readback reserve (**amra**)             |
-| `1-0001-###`  | **bsld** | Barrel shift left by pointer        | 1 | acc <<= *reg*                                    | zr -> async memory readback reserve (**amrb**)             |
-| `1-0010-###`  | **bsr**  | Barrel shift right                  | 1 | acc >>= *amount*                                 | zr -> async memory readback reserve (**amrc**)             |
-| `1-0011-###`  | **bsrd** | Barrel shift right by pointer       | 1 | acc >>= *reg*                                    | zr -> async memory readback reserve (**amrd**)             |
-| `1-0100-###`  |          | Reserved                            |   |                                                  |                                                            |
-| `1-0101-###`  |          | Reserved                            |   |                                                  |                                                            |
-| `1-0110-###`  |          | Reserved                            |   |                                                  |                                                            |
-| `1-0111-###`  |          | Reserved                            |   |                                                  |                                                            |
-| `1-1000-###`  | **imm**  | Immediate                           | 2 | *reg* = imm                                      | zr -> only acc                                             |
-| `1-1001-###`  | **brh**  | Conditionally jump to address       | 2 | pc += signed offset on condition                 | relative jump on condition                                 |
-| `1-1010-#-00` | **jmp**  | Jump to address (and link)          | 3 | pc = imm[; sf = sp; push(pc, sf[-1])]            | absolute jump                                              |
-| `1-1010-#-01` | **jmpr** | Jump to relative address (and link) | 2 | pc += signed offset[; sf = sp; push(pc, sf[-1])] | relative jump                                              |
-| `1-1010-#-10` | **jmpd** | Jump to dynamic address (and link)  | 1 | pc = acc[; sf = sp; push(pc, sf[-1])]            | absolute jump from accumulator                             |
-| `1-1010-#-11` | **prf**  | Prefetch instruction cache          | 3 | \*(imm [+ acc])                                  | ? bit unknown                                              |
-| `1-1011-#-##` | **amr**  | Async memory readback register read | 1 | acc = await *amr* l/h, release *amr*             | load low/high byte of amr into acc                         |
-| `1-1100-#-##` | **mst**  | Memory store                        | 3 | \*(*selector* + imm [+ acc]) = acc[-1]           | ast rl, [ast ri,] mst, o1, o2                              |
-| `1-1101-#-##` | **mstw** | Memory store word                   | 3 | \*2(*selector* + imm [+ acc]) = acc[-1], acc[-2] | ast rl, ast rh, [ast ri,] mstw, o1, o2 (ignore lowest bit) |
-| `1-1110-#-##` | **mld**  | Memory load                         | 3 | acc[1] = \*(*selector* + imm [+ acc])            | [ast ri,] mld, o1, o2, rst rl                              |
-| `1-1111-#-##` | **mldw** | Memory load word                    | 3 | acc[2], acc[1] = \*2(*selector* + imm [+ acc])   | [ast ri,] mldw, o1, o2, rst rl, rst rh (ignore lowest bit) |
-: {tbl-colwidths=[10,5,20,5,20,20]}
+| QCPU 2                 | Short     | Description                                      | Representation                                       | Notes                                                 |
+|------------------------+-----------+--------------------------------------------------+------------------------------------------------------+-------------------------------------------------------|
+| `00000-DDD-00-SSS-SSS` | **add**   | Addition                                         | rd = rs + rs                                         |                                                       |
+| `00000-DDD-01-SSS-SSS` | **addc**  | Addition with carry                              | rd = rs + rs + 1 if carry                            | carry from previous op                                |
+| `00000-DDD-10-SSS-SSS` | **sub**   | Subtraction                                      | rd = rs - rs                                         |                                                       |
+| `00000-DDD-11-SSS-SSS` | **subb**  | Subtraction with borrow                          | rd = rs - rs - 1 if not carry                        | carry from previous op                                |
+| `00001-WWW-IIIIIIII`   | **addi**  | Addition with sign ext. immediate                | rd = rd + imm                                        |                                                       |
+| `00010-SSS-IIIIIIII`   | **cmpi**  | Comparison with sign ext. immediate, flags only  | zr = rs - imm                                        |                                                       |
+| `00011-DDD-00-IIIIII`  | **csrr**  | Control & Status Register read                   | rd = csr                                             |                                                       |
+| `00011-SSS-01-IIIIII`  | **csrw**  | Control & Status Register write                  | csr = rs                                             |                                                       |
+| `00011-DDD-10-SSS-SSS` | **slt**   | Set one if less than register                    | rd = 1 if rs < rs                                    | sign bit, greater than or equal to with `xori rd, 1`  |
+| `00011-DDD-11-SSS-SSS` | **sltu**  | Set one if less than register unsigned           | rd = 1 if rs < rs                                    | carry bit, greater than or equal to with `xori rd, 1` |
+| `00100-DDD-00-SSS-SSS` | **szr**   | Select register if register is zero              | rd = rs if rs == 0                                   | leaves rd intact if rs != 0; use `clr` for zero       |
+| `00100-DDD-01-SSS-SSS` | **ior**   | Bitwise incl. OR (insert bits)                   | rd = rs \| rs                                        |                                                       |
+| `00100-DDD-10-SSS-SSS` | **and**   | Bitwise ADD (mask bits)                          | rd = rs & rs                                         |                                                       |
+| `00100-DDD-11-SSS-SSS` | **xor**   | Bitwise excl. OR (toggle bits)                   | rd = rs ^ rs                                         |                                                       |
+| `00101-WWW-IIIIIIII`   | **iori**  | Bitwise incl. OR with sign ext. immediate        | rd = rd \| imm                                       |                                                       |
+| `00110-WWW-IIIIIIII`   | **ioriu** | Bitwise incl. OR with immediate                  | rd = rd \| uimm                                      |                                                       |
+| `00111-WWW-IIIIIIII`   | **andi**  | Bitwise AND with sign ext. immediate             | rd = rd & imm                                        |                                                       |
+| `01000-WWW-IIIIIIII`   | **andiu** | Bitwise AND with immediate                       | rd = rd & uimm                                       |                                                       |
+| `01001-SSS-IIIIIIII`   | **biti**  | Bitwise AND with immediate, flags only           | zr = rs & uimm                                       |                                                       |
+| `01010-WWW-IIIIIIII`   | **xori**  | Bitwise excl. OR with sign ext. immediate        | rd = rd ^ imm                                        |                                                       |
+| `01011-WWW-IIIIIIII`   | **xoriu** | Bitwise excl. OR with immediate                  | rd = rd ^ uimm                                       |                                                       |
+| `01100-DDD-0LLLL-SSS`  | **bsl**   | Barrel shift left                                | rd = rs << l                                         |                                                       |
+| `01100-DDD-1RRRR-SSS`  | **bsr**   | Barrel shift right                               | rd = rs >> r                                         |                                                       |
+| `01101-DDD-0RRRR-SSS`  | **bsrs**  | Barrel shift right preserving sign               | rd = rs >> r preserve sign                           |                                                       |
+| `01101-DDD-1RRRR-SSS`  | **brr**   | Barrel rotate right                              | rd = rs >> r \| rs << -r                             |                                                       |
+| `01110-DDD-00-SSS-SSS` | **bsld**  | Barrel shift left from register                  | rd = rs << rs                                        |                                                       |
+| `01110-DDD-01-SSS-SSS` | **bsrd**  | Barrel shift right from register                 | rd = rs >> rs                                        |                                                       |
+| `01110-DDD-10-SSS-SSS` | **bsrsd** | Barrel shift right preserving sign from register | rd = rs >> rs preserve sign                          |                                                       |
+| `01110-DDD-11-SSS-SSS` | **brrd**  | Barrel rotate right from register                | rd = rs >> rs \| rs << -rs                           |                                                       |
+| `01111-DDD-00-SSS-SSS` |           |                                                  |                                                      |                                                       |
+| `01111-DDD-01-SSS-SSS` |           |                                                  |                                                      |                                                       |
+| `01111-DDD-10-SSS-SSS` |           |                                                  |                                                      |                                                       |
+| `01111-DDD-11-SSS-SSS` |           |                                                  |                                                      |                                                       |
+| `10000-DDD-IIIIIIII`   | **lli**   | Load lower sign ext. immediate                   | rd = imm                                             | unsigned with `andiu rd, 0xFF`                        |
+| `10001-DDD-IIIIIIII`   | **lui**   | Load upper immediate                             | rd = uimm << 8                                       | full immediate is `lui` + `ioriu`                     |
+| `10010-IIIIIIIIIII`    | **jmp**   | Jump                                             | ip = imm << 5                                        | 32 byte aligned                                       |
+| `10011-IIIIIIIIIII`    | **jmpl**  | Jump and link                                    | ip = imm << 5; rp = ip                               | 32 byte aligned                                       |
+| `10100-IIIIIIIIIII`    | **jmpr**  | Jump relative                                    | ip += imm << 1                                       | range of +- 2 KiB (2 byte aligned)                    |
+| `10101-IIIIIIIIIII`    | **jmprl** | Jump relative and link                           | ip += imm << 1; rp = ip                              | range of +- 2 KiB (2 byte aligned)                    |
+| `10110-SSS-FFFFFFFF`   | **jmpd**  | Jump to register                                 | ip = rs                                              |                                                       |
+| `10111-SSS-FFFFFFFF`   | **jmpdl** | Jump to register and link                        | ip = rs; rp = ip                                     |                                                       |
+| `11000-CCC-IIIIIIII`   | **brh**   | Branch                                           | ip += imm << 1 if condition                          | range of +- 256 b (2 byte aligned)                    |
+| `11001-IIIIIIIIIII`    | **prfi**  | Prefetch instructions relative                   | poke pc + (imm << 5)                                 | full range (32 byte aligned)                          |
+| `11010-DDD-IIIII-SSS`  | **mld**   | Memory load with immediate                       | rd = \*(rs + uimm) sign ext. rd                      | rd = zr is prefetch, range uimm +32 B, async, cut8    |
+| `11011-DDD-IIIII-SSS`  | **mldw**  | Memory load word with immediate                  | rd = \*(rs + (uimm << 1))                            | rd = zr is prefetch, range uimm +64 B, async, LE      |
+| `11100-SSS-IIIII-SSS`  | **mst**   | Memory store with immediate                      | \*(rs + uimm) = rs                                   | rs = zr is clear, range uimm +32 B, async             |
+| `11101-SSS-IIIII-SSS`  | **mstw**  | Memory store word with immediate                 | \*(rs + (uimm << 1)) = rs                            | rs = zr is clear, range uimm +64 B, async, LE         |
+| `11110-WWW-IIIII-SSS`  | **xch**   | Memory atomic exchange with immediate            | \*(rs + uimm) = rs; rs = \*(rs + uimm) sign ext. rs  | rd = zr is clear, range uimm +32 B, async, cut8       |
+| `11111-WWW-IIIII-SSS`  | **xchw**  | Memory atomic exchange word with immediate       | \*(rs + (uimm << 1)) = rs; rs = \*(rs + (uimm << 1)) | rd = zr is clear, range uimm +64 B, async, LE         |
+: {tbl-colwidths=[10,5,20,20,25]}
+
+| QCPU 2                 | Short     | Description                            | Translation      | Notes |
+|------------------------+-----------+----------------------------------------+------------------+-------|
+| `00000-000-00-000-000` | **bkpt**  | \* Breakpoint                          | `add 0, 0, 0`    |       |
+| `00000-DDD-00-SSS-000` | **mov**   | Move register to register              | `add rd, rs, 0`  |       |
+| `00000-000-00-SSS-000` | **test**  | Test register in ALU                   | `add 0, rs, 0`   |       |
+| `00000-DDD-10-000-SSS` | **neg**   | Negation                               | `sub rd, 0, rs`  |       |
+| `00000-000-10-SSS-SSS` | **cmp**   | Comparison                             | `sub 0, rs, rs`  |       |
+| `00001-000-00000000`   | **nop**   | \* No operation (disables flags)       | `addi 0, 0`      |       |
+| `00001-DDD-00000001`   | **inc**   | Increment                              | `addi rd, 1`     |       |
+| `00001-DDD-11111111`   | **dec**   | Decrement                              | `addi rd, -1`    |       |
+| `00001-010-IIIIIIII`   | **alloc** | Allocate (stack)                       | `addi sp, x`     |       |
+| `00011-DDD-00-XXXXXX`  | **ip**    | Instruction pointer                    | `csrr, rd, ip`   |       |
+| `00011-000-01-XXXXXX`  | **clri**  | Clear interrupt                        | `csrw, 0, pen`   |       |
+| `00011-DDD-10-SSS-000` | **sneg**  | One if register is negative            | `slt rd, rs, 0`  |       |
+| `00011-DDD-10-000-SSS` | **spos**  | One if register is positive (non-zero) | `slt rd, 0, rs`  |       |
+| `00011-DDD-11-000-SSS` | **snez**  | One if register is not zero            | `sltu rd, 0, rs` |       |
+| `01000-000-00001111`   | **cut4**  | Cut register to 4 bit                  | `andiu rd, 0xF`  |       |
+| `01000-000-11111111`   | **cut8**  | Cut register to 8 bit                  | `andiu rd, 0xFF` |       |
+| `01000-000-00000000`   | **clrl**  | Clear lower register                   | `andiu rd, 0`    |       |
+| `01010-WWW-11111111`   | **not**   | Bitwise NOT                            | `xori rd, -1`    |       |
+| `01011-WWW-11111111`   | **not8**  | Bitwise NOT lower 8 bit                | `xoriu rd, -1`   |       |
+| `10001-000-00000000`   | **clr**   | Register clear                         | `lui rd, 0`      |       |
+| `10110-000-IIIIIIII`   | **sysc**  | \* System call                         | `jmpd 0, x`      |       |
+| `10110-001-00000000`   | **ret**   | Return                                 | `jmpd rp, 0`     |       |
+| `10111-000-00000001`   | **fence** | \* Fence memory writes and reads       | `jmpdl 0, 1`     |       |
+| `10111-000-00000010`   | **ftlb**  | \* Flush TLB (after next jump)         | `jmpdl 0, 2`     |       |
+| `10111-000-00000100`   | **rfi**   | \* Return from interrupt               | `jmpdl 0, 4`     |       |
+| `10111-000-00001000`   | **wfi**   | \* Sleep until interrupt               | `jmpdl 0, 8`     |       |
+| `10111-000-00010000`   | **scf**   | \* Set carry flag                      | `jmpdl 0, 16`    |       |
+| `10111-000-00100000`   | **rscf**  | \* Reset carry flag                    | `jmpdl 0, 32`    |       |
+| `10111-000-01000000`   |           |                                        | `jmpdl 0, 64`    |       |
+| `10111-000-10000000`   |           |                                        | `jmpdl 0, 128`   |       |
+| `11011-000-IIIII-SSS`  | **prfd**  | Prefetch data                          | `mldw 0, rs, x`  |       |
+| `11100-000-IIIII-SSS`  | **mclr**  | Memory clear                           | `mst 0, rs, x`   |       |
+| `11101-000-IIIII-SSS`  | **mclrw** | Memory clear word                      | `mstw 0, rs, x`  |       |
+: {tbl-colwidths=[10,5,20,20,25]}
+
+\*: special behaviour encoded in control.
+
+| QCPU 2                  | Usage                                   | Description          | Notes                  |
+|-------------------------+-----------------------------------------+----------------------+------------------------|
+| **u8 uint**             | `u8 255`, `u8 @var`                     | Unsigned byte        |                        |
+| **u16 uint**            | `u16 65535`, `u16 @var`                 | Unsigned word        |                        |
+| **u24 uint**            | `u24 16777215`, `u24 @var`              | Unsigned 24 bit word |                        |
+| **u32 uint**            | `u32 4294967295`, `u32 @var`            | Unsigned 32 bit word |                        |
+| **i8 int**              | `i8 -128`, `i8 @var`                    | Signed byte          |                        |
+| **i16 int**             | `i16 -32768`, `i16 @var`                | Signed word          |                        |
+| **i24 int**             | `i24 -8388608`, `u24 @var`              | Signed 24 bit word   |                        |
+| **i32 int**             | `i32 -2147483648`, `u32 @var`           | Signed 32 bit word   |                        |
+| **reserve type[, amt]** | `reserve u8, 256`, `reserve u8, @len`   | Reserve opaque space | must be analysis-known |
+| **ascii text[, sen]**   | `ascii "Hello word!"`, `ascii "Cstr" 0` | ASCII text           | must be analysis-known |
+: {tbl-colwidths=[10,25,20,25]}
+
+* **S**: register source 1 and/or 2
+* **D**: register destination
+* **W**: source and writeback register
+* **I**: immediate
+* **C**: condition
+* **L**/**R**: left/right shift amount
+* **F**: flags
 :::
 
-<!--
+| Set                   | Register | Identifier                                | Size    |
+|-----------------------+----------+-------------------------------------------+---------|
+| Special Purpose       |          | **ip** (instruction ptr, 2 bytes aligned) | 15 bits |
+| Special Purpose       |          | **fl** (flags)                            | 4 bits  |
+|                       | `r0`     | **zr** (zero)                             | 16 bits |
+| General Purpose/Async | `r1`     | **rp** (return ptr)                       | 16 bits |
+| General Purpose/Async | `r2`     | **sp** (stack ptr)                        | 16 bits |
+| General Purpose/Async | `r3`     | **x1** (argument 1/return)                | 16 bits |
+| General Purpose/Async | `r4`     | **x2** (argument 2/return)                | 16 bits |
+| General Purpose/Async | `r5`     | **x3** (argument 3/return)                | 16 bits |
+| General Purpose/Async | `r6`     | **t1** (temporary)                        | 16 bits |
+| General Purpose/Async | `r7`     | **t2** (temporary)                        | 16 bits |
+: {tbl-colwidths=[25,10,50,15]}
 
-fix flags being a cycle late
+Special Purpose Registers (SPRs) can be accessed using the CSR (Control & Status Register)
+interface. Additionally, configuration and read-only registers are accessed using the CSRs,
+like the interrupt interface and virtual memory configuration.
 
--->
+In the ABI, it's the callee's responsibility to save any register it clobbers. This way,
+subroutine epiloques perform the load from memory as soon as possible to make use of asynchronous
+memory.
+GPRs (General Purpose Registers) include an 'async resolved' bit. A pipeline bubble is inserted when
+a sourcing instruction attempts to read from a register where memory hasn't resolved yet, and a
+fault interrupt is signalled when a destination instruction attempts to write to such a register.
 
-<!--
+A `rp` (return pointer) doesn't have to be stored to memory when the subroutine layer doesn't
+include calls to subroutines itself. Interrupts save the existing `rp` to memory and the
+interrupt return address is retrieved from a CSR.
 
-mst   zr,   <absolute address>
-mst   idx,  <absolute/offset address> -- index-reg
-mst   sf,   <offset address>          -- stack-frame
-mst   sp,   <offset address>          -- top-of-stack
+Arithmetic and logical instructions writing to `zr` are considered a flags-only nop, unless the
+control unit routes the logic otherwise.
 
--->
-
-<!--
-
-preincrement and predecrement are done with
-
-inc   ra
-mst'  sf,   <offset address>
-
-postincrement and postdecrement can be done with
-
-pinc  ra                            -- need register -> offset adder route
-mst'  sf,   <offset address>
-
-or
-
-post                                -- extra byte, just takes acc from one earlier
-inc   ra
-mst'  sf,   <offset address>
-
-need to work out multicycle dependency cache miss behaviour
-
-need forwarder logic for scenario:
-
-rst   ra
-inc   ra                            -- through acc
-
-make every memory load operation async !!! because sync sucks
-
--->
-
-<!--
-
-16 bit barrel operation (8 bytes)
-    ast ra
-    bsl 2   -- top 6 bits in acc for low byte
-    xch ra  -- original low byte in acc, low byte in ra
-    bsr 6   -- bottom 2 bits in acc for shift into high byte
-    xch rb  -- high byte in acc, transfer bits in rb
-    bsl 2   -- top 6 bits in acc for high byte
-    ior rb  -- insert low byte bits into high byte
-    rst rb  -- full high byte in rb
-
--->
-
-<!--
-
-add jmpr-like jmp where 8 bit address is shifted 4 times to the left
-and the top 4 bits are inherited from current address. makes jump be
-16-byte aligned
-
--->
-
-| Set             | Identifier                           | Size    |
-|-----------------+--------------------------------------+---------|
-|                 | **acc** or **zr** (zero)             | 8 bits  |
-| Special Purpose | stack-frame/**sf** (kernel)          | 16 bits |
-| Special Purpose | stack-frame/**sf** (user)            | 16 bits |
-| Special Purpose | top-of-stack/**sp** (kernel)         | 16 bits |
-| Special Purpose | top-of-stack/**sp** (user)           | 16 bits |
-| Async Memory    | **ma**/mah + mal                     | 16 bits |
-| Async Memory    | **mb**/mbh + mbl                     | 16 bits |
-| Async Memory    | **mc**/mch + mcl                     | 16 bits |
-| Async Memory    | **md**/mdh + mdl                     | 16 bits |
-| General Purpose | **ra**                               | 8 bits  |
-| General Purpose | **rb**                               | 8 bits  |
-| General Purpose | **rc**                               | 8 bits  |
-| General Purpose | **rd**                               | 8 bits  |
-| General Purpose | **rx** (argument 1, index low byte)  | 8 bits  |
-| General Purpose | **ry** (argument 2, index high byte) | 8 bits  |
-| General Purpose | **rz** (argument 3)                  | 8 bits  |
-: {tbl-colwidths=[25,60,15]}
-
-| Flags | Name   | Representation            |
-|-------+--------+---------------------------|
-| `000` | **C**  | `if (unsigned) overflow`  |
-| `001` | **S**  | `if signed`               |
-| `010` | **Z**  | `if acc == 0`             |
-| `011` | **U**  | `if underflow`            |
-| `100` | **!C** | `if !(unsigned) overflow` |
-| `101` | **!S** | `if !signed`              |
-| `110` | **!Z** | `if acc != 0`             |
-| `111` | **!U** | `if !underflow`           |
+| Flags | Name   | Representation                |
+|-------+--------+-------------------------------|
+| `000` | **c**  | `if overflow || underflow`    |
+| `001` | **s**  | `if signed`                   |
+| `010` | **z**  | `if acc == 0`                 |
+| `011` |        |                               |
+| `100` | **nc** | `if !(overflow || underflow)` |
+| `101` | **ns** | `if !signed`                  |
+| `110` | **nz** | `if acc != 0`                 |
+| `111` |        |                               |
 : {tbl-colwidths=[25,10,65]}
 
 ::: {.pipeline}
-| fetch   | fetch   | decode   | decode   | execute | writeback |
-|---------+---------+----------+----------+---------+-----------|
-| Fetch 1 | Fetch 2 | Decode 1 | Decode 2 | Execute | Writeback |
-:::
-
-::: {.callout-note}
-**rl**/**rh** can be any low/high general-purpose register set
-
-**ri** can be any general purpose register
+| fetch   | fetch   | decode | execute | memory | writeback |
+|---------+---------+--------+---------+--------+-----------|
+| Fetch 1 | Fetch 2 | Decode | Execute | Memory | Writeback |
 :::

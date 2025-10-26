@@ -1,0 +1,46 @@
+---
+title: "CSRs"
+subtitle: "Control & Status Registers"
+---
+
+::: {.instruction-set .column-screen}
+| User CSRs | Short    | Privilege | Description     | Caveats                                    |
+|-----------+----------+-----------+-----------------+--------------------------------------------|
+| `0x00`    | **misa** | RO        | Machine ISA     | constant by implementation                 |
+| `0x01`    | **hart** | RO        | Hardware thread | constant by implementation                 |
+| `0x02`    | **ip**   | RO        | Instruction ptr | write with the family of jump instructions |
+| `0x20`    | **fl**   | RW        | Flag register   |                                            |
+: {tbl-colwidths=[10,5,5,20,40]}
+:::
+
+<!--
+::: {.instruction-set .column-screen}
+| Extension CSRs | Short     | Privilege | Description                 | Caveats |
+|----------------+-----------+-----------+-----------------------------+---------|
+| `0x10`         | **mul0**  | RW        | Multiplication 0            |         |
+| `0x11`         | **mul1**  | RW        | Multiplication 1            |         |
+| `0x12`         | **mulrl** | RO        | Multiplication result lower |         |
+| `0x13`         | **mulrh** | RO        | Multiplication result upper |         |
+| `0x14`         | **div0**  | RW        | Division 0                  |         |
+| `0x15`         | **div1**  | RW        | Division 1                  |         |
+| `0x16`         | **divr**  | RO        | Division result             |         |
+| `0x17`         | **modr**  | RO        | Division remainder          |         |
+: {tbl-colwidths=[10,5,5,20,40]}
+:::
+-->
+
+::: {.instruction-set .column-screen}
+| Kernel CSRs | Short     | Privilege | Description                                  | Caveats                                                     |
+|-------------+-----------+-----------+----------------------------------------------+-------------------------------------------------------------|
+| `0x40`      | **int**   | RO        | Interrupt major and minor                    | written by interrupt or sysc instruction                    |
+| `0x80`      | **irp**   | RW        | Interrupt return ptr                         | written by interrupt or sysc instruction, used by `rfi`     |
+| `0x81`      | **vec**   | RW        | interrupt vector                             |                                                             |
+| `0x82`      | **veck**  | RW        | interrupt vector (kernel)                    |                                                             |
+| `0x83`      | **pen**   | RW        | Interrupt pending                            | one if pending (mask), zero to clear                        |
+| `0x84`      | **scr**   | RW        | Interrupt scratch register                   | to store temporary values during context save               |
+| `0x85`      | **ft**    | RW        | Features                                     | enabled CPU features: kp, BTB, async, interrupts            |
+| `0x86`      | **pmlen** | RO        | Physical memory length                       | amount of implemented physical memory                       |
+| `0x87`      | **pmat**  | RW        | Physical memory address translation          | zero is vm disabled, maps `0x0000..0xC000`, virtual address |
+| `0x88`      | **pmatk** | RW        | Physical memory address translation (kernel) | zero is vm disabled, maps `0xF000...0xFFFF`                 |
+: {tbl-colwidths=[10,5,5,20,40]}
+:::

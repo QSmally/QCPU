@@ -1,45 +1,57 @@
 ---
 title: "Introduction to QCPU 2"
 description: "An introduction into the QCPU 2 architecture and its assembly language."
-date: 2023-10-5
+date: 2025-10-09
 categories: []
 ---
 
-QCPU 2 is a singular operand architecture, which means its instructions can be 8 bits in size. Its
-address space, however, is 16 bits. There are certain instructions which take an additional one or
-two bytes for instructions.
+QCPU 2 is a 16 bit instruction, 16 bit data, 16 bit address microprocessor
+architecture. The CPU may run in a symmetric configuration using its `hart`
+(hardware thread) identification.
 
-## Register map
+## General Purpose Registers
 
-- Accumulator: `zr` (0)
-- Zero register: `zr` (0)
-- General purpose: `ra`, `rb`, `rc`, `rd`  (1-4)
-- Subroutine args: `rx`, `ry`, `rz` (5-7)
+There are eight operand-addressable General Purpose Registers (GPRs):
 
-### Special registers
+* 0: `zr` (zero read, void write)
+* 1: `rp` (return pointer)
+* 2: `sp` (stack pointer)
+* 3: `x1` (argument 1/return)
+* 4: `x2` (argument 2/return)
+* 5: `x3` (argument 3/return)
+* 6: `t1` (temporary)
+* 7: `t2` (temporary)
 
-There are a couple of special, non-addressable registers:
+Contrary to their name, `rp` and `sp` don't include special logic (however, the
+jump-and-link family of instructions do write to `rp` on link). It's
+conventional to use `r2`/`sp` as the pointer to a stack in memory.
+Realistically, there are five available registers to perform general-purpose
+operations with, before having to spill data to memory (like a stack).
 
-- Stack pointer: `sp` (`u16`)
-- Stack frame pointer: `sf` (`u16`)
+## Special Purpose Registers
 
-### Async memory registers
+There are two non-addressable Special Purpose Registers (SPRs):
 
-Memory can be fetched from asynchronously, using the `amr*` instructions, and read from through the
-`amr` instruction. Pending registers (those who have called for a fetch, but not yet received a
-response) will cause the processor to stall. The addressable registers are:
+* `ip` (instruction ptr)
+* `fl` (flag register)
 
-- A: `mah`, `mal`
-- B: `mbh`, `mbl`
-- C: `mch`, `mcl`
-- D: `mdh`, `mdl`
+The instruction pointer is incremented every cycle, except on jump-like
+instructions, which set the instruction pointer to a resolved address. The flag
+register is written to every ALU or barrel shifter operation.
 
-:::{.callout-note}
-May be changed in future revisions.
-:::
+Both SPRs can be read from directly through the Control & Status Register (CSR)
+instructions. The flag register can be written to in kernel mode, but the
+instruction pointer can not.
 
-### Index register
+## Memory
 
-Certain memory operations can use registers `rx` and `ry` as the 16 bit index register, as opposed
-to either one of the special registers or none. See the memory chapter for more information about
-memory accessing and data flow.
+QCPU is a RISC-like, load-store architecture. There's a family of `mst` (memory
+store) and `mld` (memory load) instructions. Each memory instruction has an
+associated instruction to operate on words (the full 16 bit register).
+
+Memory accesses are asynchronous. If a read happens to a destination register,
+the GPR's async resolved bit is reset. A read operation on that register stalls
+the CPU when the async operation is not yet resolved. Memory writes are queued
+in the same way, but can only be awaited using the `fence` pseudoinstruction.
+Atomic instructions (`aswp` family of instructions) are also async, but atomic
+with symmetric multiprocessing.
