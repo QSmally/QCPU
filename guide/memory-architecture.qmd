@@ -8,7 +8,7 @@ categories: [memory]
 QCPU is a load-store architecture. A memory instruction is composed of a source
 or destination register, an address register, and a 5 bit unsigned immediate:
 
-```
+```{.asm}
 instr <source or destination>, <address>, <5 bit uimm>
 ```
 
@@ -25,15 +25,15 @@ and chops off the LSB of the resolved address.
 
 Memory from a pointer (e.g. allocated by the kernel) can be used like so:
 
-```
-                  mld t1, x1, 0           ; loads from ptr x1 into t1
+```{.asm}
+                  mld t1, x1, 0                 ; loads from ptr x1 into t1
 ```
 
 Memory can be addressed by the stack pointer, like so:
 
-```
-                  mldw x1, sp, 0          ; loads sp+0 in x1
-                  mldw x2, sp, 2          ; loads sp+2 in x2
+```{.asm}
+                  mldw x1, sp, 0                ; loads sp+0 in x1
+                  mldw x2, sp, 2                ; loads sp+2 in x2
 ```
 
 To address memory on an assemble-time known address, it must be first loaded
@@ -42,21 +42,26 @@ or 64 byte range, for byte-sized and word-sized respectively, it can be done
 with a single `lui` instruction. Otherwise, an additional `ioriu` instruction
 must be added to saturate the address with the lower byte:
 
-```
-                  lui t1, 0xEA            ; load upper byte
-                  mld x1, t1, 0           ; loads 0xEA00 into x1
+```{.asm}
+                  lui t1, 0xEA lsh 8            ; load upper byte
+                  mld x1, t1, 0                 ; loads 0xEA00 into x1
 ```
 
+```{.asm}
+                  lui t1, 0xEA lsh 8            ; load upper byte
+                  mld x1, t1, 31                ; loads 0xEA1F into x1
 ```
-                  lui t1, 0xBE            ; load upper byte
-                  ioriu t1, 0xEF          ; ORs lower byte
-                  mld x1, t1, 0           ; loads 0xBEEF into x1
+
+```{.asm}
+                  lui t1, 0xBE lsh 8            ; load upper byte
+                  ioriu t1, 0xEF                ; ORs lower byte
+                  mld x1, t1, 0                 ; loads 0xBEEF into x1
 ```
 
 Addresses relative to the current instruction pointer can be calculated by
 reading the `ip` CSR:
 
-```
+```{.asm}
                   csrr t1, 0x02
                   addi t1, $ - .label - 2
                   mld x1, t1, 0
@@ -64,14 +69,31 @@ reading the `ip` CSR:
 
 ## Memory operations
 
-Prefetching from memory is done by loading into `zr`, which discards the result.
+Prefetching from data memory is done by loading into `zr`, which discards the
+result (pseudo-instruction `prfd`).
 
 Resetting memory (setting a byte or word to 0) is done by storing `zr` to the
-destination.
+destination (pseudo-instructions `mclr` and `mclrw` for clearing a byte and
+word respectively).
 
 ## Atomics
 
-... atomics
+Atomic operations can be done using the `xch` atomic instruction. `xch`
+atomically swaps a memory location with a register.
+
+For implementing a mutex lock mechanism, harts can swap `1` into its place and
+expect `0` when they've taken the lock:
+
+```{.asm}
+                  lui x1, .mutex'u       
+                  lli x2, 1
+.try_lock:        xch x2, x1, .mutex'l          ; 0bXXXXXXXX.000XXXXX
+                  brh nz, .try_lock             ; was already taken? try again
+
+                  ; ... lock taken
+
+                  xch zr, x1, .mutex'l          ; release lock
+```
 
 ## Async memory
 
@@ -79,5 +101,5 @@ Memory accesses are asynchronous. If a read happens to a destination register,
 the GPR's async resolved bit is reset. A read operation on that register stalls
 the CPU when the async operation is not yet resolved. Memory writes are queued
 in the same way, but can only be awaited using the `fence` pseudoinstruction.
-Atomic instructions (`aswp` family of instructions) are also async, but atomic
+Atomic instructions (`xch` family of instructions) are also async, but atomic
 with symmetric multiprocessing.

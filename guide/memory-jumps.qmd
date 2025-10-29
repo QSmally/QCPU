@@ -5,4 +5,20 @@ date: 2025-10-11
 categories: [memory, addressing]
 ---
 
-...
+There are three types of jump instructions used in various scenarios:
+
+* `jmp` - jumps to an 11 bit absolute address (32 byte aligned, full range)
+* `jmpr` - jumps to an 11 bit relative offset (2 byte aligned, +- 2 KiB range)
+* `jmpd` - jumps to a 15 bit register address (2 byte aligned, full range)
+
+Each jump type has a 'link' variant, resulting in a jump-and-link calling convention by setting the
+`rp` (`r1`) register to the instruction pointer one after the link instruction.
+
+`jmpd rp` returns back to the invoking call site (pseudo-instruction `ret`). A dynamic jump
+instruction discards the LSB due to the 2 byte aligned instruction pointer. There is no exception
+given if the LSB is high when using `jmpd`.
+
+## Branches
+
+Branches are conditional, non-callable jumps. The `brh` instruction takes an 8 bit offset address
+(2 byte aligned, +- 256 byte range).

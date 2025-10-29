@@ -55,6 +55,8 @@ Like most assembly languages, instruction lines generally look like the followin
 label:            instr op, op, op              ; comments                col 80
 ```
 
+Conventionally, a space width of 6 is used.
+
 There are two supported types of comments, prefixed with `;` and `//`. QCPU assembly doesn't support
 multiline comments (like `/* */` in C). This allows the assembler to tokenise any line out of
 context.
@@ -82,8 +84,8 @@ These encoded pseudo-instructions convert some kind of encoding into their repre
 * `u32`, `i32`: a 32 bit word (unsigned or signed, respectively)
 
 ```{.asm}
-var:              u16 0xEAEA              ; memory location containing a two byte variable
-ptr:              u16 .var                ; memory location containing a two byte ptr to variable
+var:              u16 0xEAEA                    ; memory location containing a two byte variable
+ptr:              u16 .var                      ; memory location containing a two byte ptr to variable
 ```
 
 A couple of pseudo-instructions manage variably-sized encoding of data:
@@ -94,8 +96,8 @@ sentinel_str:     ascii "This is a C-like string" 0
 ```
 
 ```{.asm}
-                  reserve u8, 16          ; 1 * 16 null bytes
-                  reserve u16, 16         ; 2 * 16 null bytes
+                  reserve u8, 16                ; 1 * 16 null bytes
+                  reserve u16, 16               ; 2 * 16 null bytes
 ```
 
 ### Pseudo-instruction aliases
@@ -103,15 +105,57 @@ sentinel_str:     ascii "This is a C-like string" 0
 A couple of pseudo-instructions are aliases to known instructions:
 
 ```{.asm}
-                  mov t1, x1              ; alias for 'add t1, x1, 0'
-                  cut8 t1                 ; alias for 'andiu t1, 0xFF'
-                  ret                     ; alias for 'jmpd rp'
+                  mov t1, x1                    ; alias for 'add t1, x1, 0'
+                  cut8 t1                       ; alias for 'andiu t1, 0xFF'
+                  ret                           ; alias for 'jmpd rp'
 ```
 
 However, certain aliases (or, more precisely, instruction encodings) have special behaviours:
 
 ```{.asm}
-                  sysc 1                  ; alias/special behaviour for 'jmpd 0, 1'
+                  sysc 1                        ; alias/special behaviour for 'jmpd 0, 1'
+```
+
+## Address semantics
+
+### Masks
+
+Instructions can use label addresses which are resolved during link-time. Immediates are, however,
+less than the 16 bit address range which is available, masking a subset of the address:
+
+```{.asm}
+                  lui x1, .label'u              ; masks 0b11111111.00000000
+                  ioriu x1, .label'l            ; masks 0b00000000.11111111
+                  mld x2, x1, .label'l          ; masks 0b00000000.00011111
+                  mldw x3, x1, .label'l         ; masks 0b00000000.00111110
+```
+
+To prevent any bit loss, the assembler will give an error if an instruction masks off an inputted
+immediate value. For example, providing `lli` with an immediate value of `0x0100` (first bit of the
+upper byte) results in such an error. To silence expected masks, reference modifiers can be used
+to manually mask a reference label:
+
+* `.label'u` - masks `0b11111111.00000000`
+* `.label'l` - masks `0b00000000.11111111`
+
+### Offset expressions
+
+References can be offsetted by expressions:
+
+```{.asm}
+                  addi x1, .label'l + 4
+                  lli x2, .label'l - (@len lsh 2)
+```
+
+### Differences
+
+An address difference can be made if both labels belong to the same defined section:
+
+```{.asm}
+@section data
+
+.str:             ascii "Hello world!"
+.len:             u8 .len - .str
 ```
 
 ## Builtins

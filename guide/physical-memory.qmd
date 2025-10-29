@@ -33,8 +33,8 @@ provide abstraction from the underlying hardware @arm-memory-management [chap. 3
 |  64 KiB  |             |  64 KiB  | ___ I/O 1 uart ...       |
 |          | per-process |          | ___ I/O 2 diskio         | ---
 | virtual  | ___ MMU ___ | physical | ___ I/O ...              |    |
-| memory   |   mapping   | memory   | ___ I/O 7                |    |
-|          |             |          |                          |   *------------*
+| memory   |   mapping   | memory   | ___ I/O 7                |   *------------*
+|          |             |          |                          |   | e.g. 16M   |
 |          |             |          | ___ main memory          |   | persistent |
 |          |             |          |                          |   | storage    |
 *----------*             *----------*    +-                   -+   *------------*
@@ -43,7 +43,7 @@ provide abstraction from the underlying hardware @arm-memory-management [chap. 3
 In QCPU, there are two kinds of virtual memory mappings: linear logical mapping,
 and page mapping. Like in the Linux and FreeBSD kernels, the kernel itself is
 logically mapped to the top part of the address space. Surrounding parts of the
-address space is mapped by userland memory (`pmatu` CSR) and variable memory
+address space is mapped by userland memory (`pmat` CSR) and variable memory
 (`pmatk` CSR). One of the first thing a kernel (like the QOS kernel) does,
 besides setting up a stack space, is enable logical mapping (`kp`
 kernel-protection bit in the `ft` CSR) and perform a flushing jump to somewhere
@@ -80,7 +80,7 @@ different strategies, creating a reduction in calls to the kernel) @gnu-allocato
 
 ## Memory Management Unit
 
-The Memory Management Unit (MMU) uses tables set by the `pmatu` and `pmatk` CSRs
+The Memory Management Unit (MMU) uses tables set by the `pmat` and `pmatk` CSRs
 (physical memory address translation user/kernel, repsectively). The physical
 mapping along with flags are 2 bytes per page:
 

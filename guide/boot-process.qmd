@@ -32,26 +32,26 @@ pointer is set to the last element in the region.
 @section stack
 @align 256
 @region 512
-@define slen, 512
-@define sbase, .top + @slen
+@define stlen, 512
+@define stbase, .sttop + @slen
 
-.top:             reserve u8, @slen       ; top of stack
+.sttop:           reserve u8, @stlen      ; top of stack
 
 @end
 
 @section root
 @align 2
 
-_:                lui sp, @sbase rsht 8
+_:                lui sp, @stbase
                   bkpt
 ```
 
-For allocating to the stack, use the `alloc` pseudoinstruction:
+For allocating to the stack, use the `alloc` pseudo-instruction:
 
 ```
                   alloc -4                ; 4 bytes
-                  mstw x1, sp, 0          ; sp+0/1 = x1
-                  mstw x2, sp, 2          ; sp+2/3 = x2
+                  mstw x1, sp, 0          ; sp+0 sp+1 = x1
+                  mstw x2, sp, 2          ; sp+2 sp+3 = x2
 ```
 
 ## Kernel space
@@ -94,10 +94,10 @@ is mapped to its equivalent starting from `0x0000` in physical memory.
 
 // executed in 0x0800 physical memory
 
-_:                lli x1, 0b00000001      ; enable bit for kp/kernel-protect
-                  csrw x1, 0x043          ; write features
-                  flsh                    ; flush on next jump
-                  jmp .kmain              ; absolute jump to virtual memory addr
+_:                lli x1, 0b00000001            ; enable bit for kp/kernel-protect
+                  csrw x1, 0x043                ; write features
+                  ftlb                          ; TLB flush on next jump
+                  jmp .kmain                    ; absolute jump to virtual memory addr
 
 // executed in 0xC8XX logical memory
 

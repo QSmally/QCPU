@@ -7,20 +7,22 @@ categories: []
 
 QCPU 2 is a 16 bit instruction, 16 bit data, 16 bit address microprocessor
 architecture. The CPU may run in a symmetric configuration using its `hart`
-(hardware thread) identification.
+(hardware thread) identification, similar to RISC-V harts. That being said,
+QCPU 2 is heavily based on the RISC-V design, tailored to a more real-time
+specification.
 
 ## General Purpose Registers
 
 There are eight operand-addressable General Purpose Registers (GPRs):
 
-* 0: `zr` (zero read, void write)
-* 1: `rp` (return pointer)
-* 2: `sp` (stack pointer)
-* 3: `x1` (argument 1/return)
-* 4: `x2` (argument 2/return)
-* 5: `x3` (argument 3/return)
-* 6: `t1` (temporary)
-* 7: `t2` (temporary)
+* `r0`: `zr` (zero read, void write)
+* `r1`: `rp` (return pointer)
+* `r2`: `sp` (stack pointer)
+* `r3`: `x1` (argument 1/return)
+* `r4`: `x2` (argument 2/return)
+* `r5`: `x3` (argument 3/return)
+* `r6`: `t1` (temporary)
+* `r7`: `t2` (temporary)
 
 Contrary to their name, `rp` and `sp` don't include special logic (however, the
 jump-and-link family of instructions do write to `rp` on link). It's
@@ -53,5 +55,9 @@ Memory accesses are asynchronous. If a read happens to a destination register,
 the GPR's async resolved bit is reset. A read operation on that register stalls
 the CPU when the async operation is not yet resolved. Memory writes are queued
 in the same way, but can only be awaited using the `fence` pseudoinstruction.
-Atomic instructions (`aswp` family of instructions) are also async, but atomic
+Atomic instructions (`xch` family of instructions) are also async, but atomic
 with symmetric multiprocessing.
+
+## Assembly language
+
+QCPU 2 has an [assembly language toolchain](/pages/assembly).
