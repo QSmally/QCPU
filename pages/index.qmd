@@ -155,11 +155,11 @@ control unit routes the logic otherwise.
 |-------+--------+-------------------------------|
 | `000` | **c**  | `if overflow || underflow`    |
 | `001` | **s**  | `if signed`                   |
-| `010` | **z**  | `if acc == 0`                 |
+| `010` | **z**  | `if result == 0`              |
 | `011` |        |                               |
 | `100` | **nc** | `if !(overflow || underflow)` |
 | `101` | **ns** | `if !signed`                  |
-| `110` | **nz** | `if acc != 0`                 |
+| `110` | **nz** | `if result != 0`              |
 | `111` |        |                               |
 : {tbl-colwidths=[25,10,65]}
 

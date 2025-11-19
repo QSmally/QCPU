@@ -9,5 +9,7 @@ _:                jmpr .entrypoint
 
 .entrypoint:      bkpt
 
-@linkinfo(origin) root, 0xC800
+// physical memory linkage
+
+@linkinfo(origin) root, 0x0800
 @linkinfo(align) text, 32
