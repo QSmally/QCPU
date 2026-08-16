@@ -1,9 +1,9 @@
 
 FROM nginx
 
-ARG TAG=v1.3.340
+ARG TAG
 
-RUN apt update && apt install git curl wget unzip -y
+RUN apt update && apt install git curl wget unzip xz-utils nodejs npm -y
 
 RUN git clone --depth 1 --branch $TAG https://github.com/quarto-dev/quarto-cli.git
 WORKDIR /quarto-cli

@@ -33,4 +33,4 @@ format:
       dark: cyborg
     css: publish/style.css
     bibliography: publish/references.bib
-    csl: publish/ieee-control-systems.csl
+    csl: https://mirrors.qsmally.org/archive/ieee-control-systems.csl

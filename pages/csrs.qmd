@@ -3,44 +3,42 @@ title: "CSRs"
 subtitle: "Control & Status Registers"
 ---
 
-::: {.instruction-set .column-screen}
-| User CSRs | Short    | Privilege | Description     | Caveats                                    |
-|-----------+----------+-----------+-----------------+--------------------------------------------|
-| `0x00`    | **misa** | RO        | Machine ISA     | constant by implementation                 |
-| `0x01`    | **hart** | RO        | Hardware thread | constant by implementation                 |
-| `0x02`    | **ip**   | RO        | Instruction ptr | write with the family of jump instructions |
-| `0x20`    | **fl**   | RW        | Flag register   |                                            |
-: {tbl-colwidths=[10,5,5,20,40]}
-:::
-
-<!--
-::: {.instruction-set .column-screen}
-| Extension CSRs | Short     | Privilege | Description                 | Caveats |
-|----------------+-----------+-----------+-----------------------------+---------|
-| `0x10`         | **mul0**  | RW        | Multiplication 0            |         |
-| `0x11`         | **mul1**  | RW        | Multiplication 1            |         |
-| `0x12`         | **mulrl** | RO        | Multiplication result lower |         |
-| `0x13`         | **mulrh** | RO        | Multiplication result upper |         |
-| `0x14`         | **div0**  | RW        | Division 0                  |         |
-| `0x15`         | **div1**  | RW        | Division 1                  |         |
-| `0x16`         | **divr**  | RO        | Division result             |         |
-| `0x17`         | **modr**  | RO        | Division remainder          |         |
-: {tbl-colwidths=[10,5,5,20,40]}
-:::
--->
+CSRs are only available in kernel mode. They provide system-specific extensions to the
+microprocessor, and can be read from and written to with the `csrr` and `csrw` instructions,
+respectively, providing a 6 bit address with a total of 64 CSRs. A write to a read-only CSR
+results in a nop. Reads have no side-effect, and reads into the `zr` void register are
+therefore implemented as zero-operand instructions in the ISA.
 
 ::: {.instruction-set .column-screen}
-| Kernel CSRs | Short     | Privilege | Description                                  | Caveats                                                     |
-|-------------+-----------+-----------+----------------------------------------------+-------------------------------------------------------------|
-| `0x40`      | **int**   | RO        | Interrupt major and minor                    | written by interrupt or sysc instruction                    |
-| `0x80`      | **irp**   | RW        | Interrupt return ptr                         | written by interrupt or sysc instruction, used by `rfi`     |
-| `0x81`      | **vec**   | RW        | interrupt vector                             |                                                             |
-| `0x82`      | **veck**  | RW        | interrupt vector (kernel)                    |                                                             |
-| `0x83`      | **pen**   | RW        | Interrupt pending                            | one if pending (mask), zero to clear                        |
-| `0x84`      | **scr**   | RW        | Interrupt scratch register                   | to store temporary values during context save               |
-| `0x85`      | **ft**    | RW        | Features                                     | enabled CPU features: kp, BTB, async, interrupts            |
-| `0x86`      | **pmlen** | RO        | Physical memory length                       | amount of implemented physical memory                       |
-| `0x87`      | **pmat**  | RW        | Physical memory address translation          | zero is vm disabled, maps `0x0000..0xC000`, virtual address |
-| `0x88`      | **pmatk** | RW        | Physical memory address translation (kernel) | zero is vm disabled, maps `0xF000...0xFFFF`                 |
-: {tbl-colwidths=[10,5,5,20,40]}
+| Address | Short       | Privilege | Length | Description               | Caveats                                          |
+|---------+-------------+-----------+--------+---------------------------+--------------------------------------------------|
+| 0x000   | **misa**    | RO        | 16     | Machine ISA               | constant by implementation                       |
+| 0x000   | **ft** *    | RW ***    | 16     | Features                  | prot, btb, async, interrupts                     |
+| 0x000   | **hart** ** | RO        | 16     | Hardware thread           | constant by implementation                       |
+| 0x000   | **fr**      | RW        | 4      | Flag register             | carry, half carry, sign, zero                    |
+| 0x000   | **int**     | RO        | 8      | Interrupt id              | written by interrupt                             |
+| 0x000   | **ival**    | RO        | 16     | Interrupt value           | written by interrupt, e.g. memory address        |
+| 0x000   | **irp**     | RW        | 16a2   | Interrupt return ptr      | written by interrupt and kernel, used by `reti`  |
+| 0x000   | **imsk**    | RW        | 1      | Interrupt mask            | written by interrupt, one if pending (mask)      |
+| 0x000   | **vec**     | RW ***    | 16a2   | Interrupt vector          | interrupt jump location (irp kernel mode region) |
+| 0x000   | **ien** *   | RW ***    | 16     | Interrupt enable register | timer, sysc, addr., mem, ...                     |
+| 0x000   | **scr**     | RW        | 16     | Scratch register          | used by e.g. interrupt context switches          |
+| 0x000   | **ctb**     | RW ***    | 8      | Time base clock           | clock timer prescale                             |
+| 0x000   | **itb**     | RW ***    | 8      | Time base interrupt       | interrupt timer prescale                         |
+| 0x000   | **prfi**    | WO        | 16     | Prefetch instruction      | prefetches instruction memory                    |
+| 0x000   | **spl**     | WO        | 16     | Stack pointer low limit   | destination `sp` low limit                       |
+| 0x000   | **sph**     | WO        | 16     | Stack pointer high limit  | destination `sp` high limit                      |
+: {tbl-colwidths=[5,5,5,5,25,35]}
 :::
+
+\* Guaranteed 0 on reset.
+
+\*\* Guaranteed hart 0 to exist in any system configuration.
+
+\*\*\* Subject to change: RW -> WO.
+
+TODO: virtual memory configuration CSRs
+
+<!-- | 0x000   | **plen**    | RO        | 16     | Physical length                              | constant by implementation                           | -->
+<!-- | 0x000   | **pmat**    | RW        | 16     | Physical memory address translation          | zero for vm disabled, maps `0x0000..0xC000`          | -->
+<!-- | 0x000   | **pmatk**   | RW        | 16     | Physical memory address translation (kernel) | zero for vm disabled, maps logical `0xC000...0xFFFF` | -->

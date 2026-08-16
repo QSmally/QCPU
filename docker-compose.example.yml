@@ -1,0 +1,5 @@
+
+services:
+  qcpu-qsmally-org:
+    ports:
+      - 80:80

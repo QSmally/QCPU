@@ -1,62 +1,122 @@
 ---
 title: "Introduction to QCPU 2"
-description: "An introduction into the QCPU 2 architecture and its assembly language."
-date: 2025-10-09
+description: "An introduction into the QCPU 2 architecture."
+date: 2026-08-14
 categories: []
 ---
 
-QCPU 2 is a 16 bit instruction, 16 bit data, 16 bit address microprocessor
-architecture. The CPU may run in a symmetric configuration using its `hart`
-(hardware thread) identification, similar to RISC-V harts. That being said,
-QCPU 2 is heavily based on the RISC-V design, tailored to a more real-time
-specification.
+QCPU 2 is a 16 bit instruction, 16 bit data, 16 bit address microprocessor architecture.
 
-## General Purpose Registers
+## General-purpose registers
 
-There are eight operand-addressable General Purpose Registers (GPRs):
+The QCPU 2 architecture implements Data Registers (DRs) as well as Address Registers (ARs). A
+distinction is made between these two types to encode more general-purpose registers into the
+architecture. This is a concept seen in the Motorola 68000.
 
-* `r0`: `zr` (zero read, void write)
-* `r1`: `rp` (return pointer)
-* `r2`: `sp` (stack pointer)
-* `r3`: `x1` (argument 1/return)
-* `r4`: `x2` (argument 2/return)
-* `r5`: `x3` (argument 3/return)
-* `r6`: `t1` (temporary)
-* `r7`: `t2` (temporary)
+Instructions are more likely to allow access to DRs than ARs, but ARs provide a couple of special
+properties. In QCPU 2, some ARs are specially mapped in the microprocessor, such as the instruction
+pointer, which replaces necessary jump instructions with regular move and add operations with the
+addressable instruction pointer register. Likewise, the return pointer is written to during
+jump-and-link instructions. In general, ARs can emit hardware exceptions on over-/underflows during
+arithmetic operations.
 
-Contrary to their name, `rp` and `sp` don't include special logic (however, the
-jump-and-link family of instructions do write to `rp` on link). It's
-conventional to use `r2`/`sp` as the pointer to a stack in memory.
-Realistically, there are five available registers to perform general-purpose
-operations with, before having to spill data to memory (like a stack).
+```{}
++-  Data Registers   -+   +- Address Registers -+
+|                     |   |                     |
+|    Fully General    |   |  Partially General  |
+|       Purpose       |   |       Purpose       |
+|                     |   |                     |
+| r0  zero            |   | r8  zero            |
+| r1  d1              |   | r9  instruction ptr |
+| r2  d2              |   | r10 return ptr      |
+| r3  d3              |   | r11 stack ptr       |
+| r4  d4              |   | r12 frame ptr       |
+| r5  d5              |   | r13 a1              |
+| r6  d6              |   | r14 a2              |
+| r7  d7              |   | a15 a3              |
+|                     |   |                     |
++---------------------+   +---------------------+
 
-## Special Purpose Registers
+  Addition                  Addition
+  Addition with imm.        Addition with imm.
+  Comparison with imm.      -
+  Move conditionally        Move conditionally
+  Subtraction               Subtraction
+  Set conditionally         -
+  Bitwise                   -
+  Barrel shift              -
+  Load imm.                 Load imm.
+  Memory source/dest.       -
+  -                         Memory address
+  -                         Predec./postinc.
+  -                         Over-/underflow exc.
+```
 
-There are two non-addressable Special Purpose Registers (SPRs):
+## Control & Status Registers
 
-* `ip` (instruction ptr)
-* `fl` (flag register)
+Control & Status Registers (CSRs) are microprocessor extensions to read system information and
+configure the system. They can only be accessed in kernel mode through the `csrr` and `csrw`
+instructions, which reads a CSR to and writes to a CSR from a DR, respectively.
 
-The instruction pointer is incremented every cycle, except on jump-like
-instructions, which set the instruction pointer to a resolved address. The flag
-register is written to every ALU or barrel shifter operation.
+In kernel start-up, the most important CSRs are reading the `hart` (hardware thread) and configuring
+the `ft` (system features). These features configure memory synchronicity, the Branch Target Buffer
+(BTB), kernel protection, interrupts, and so on. Similarly, internal system registers can be read
+from and written to through the use of CSRs, such as the flag register, the stack low/high limit,
+and the microprocessor time interrupter. A general-purpose scratch register is present in the CSRs
+for use in interrupt context switches.
 
-Both SPRs can be read from directly through the Control & Status Register (CSR)
-instructions. The flag register can be written to in kernel mode, but the
-instruction pointer can not.
+## Instruction encoding
 
-## Memory
+The Instruction Set Architecture (ISA) of QCPU 2 use fixed-length instructions. The encoding
+contains up to three register operands. In all instructions, a 5 bit operation code (opcode) is
+present. A function code is present in a subset of the instructions. A basic instruction with two
+sources and a destination is encoded as:
 
-QCPU is a RISC-like, load-store architecture. There's a family of `mst` (memory
-store) and `mld` (memory load) instructions. Each memory instruction has an
-associated instruction to operate on words (the full 16 bit register).
+```{}
+                        | opcode    | dest  | fn  | src 1 | src 2 |
+result-type             | X X X X X | R R R | Y Y | R R R | R R R |   ALU operations
+                        | 15     11 | 10  8 | 7 6 | 5   3 | 2   0 |
+                        | MSB                                 LSB |
+```
 
-Memory accesses are asynchronous. If a read happens to a destination register,
-the GPR's async resolved bit is reset. A read operation on that register stalls
-the CPU when the async operation is not yet resolved. Memory writes are queued
-in the same way, but can only be awaited using the `fence` pseudoinstruction.
-Atomic instructions (`xch` family of instructions) are also async, but atomic
-with symmetric multiprocessing.
+Similarly, the following other instruction encodings are available:
+
+```{}
+                        | opcode    | immediate           | reg   |
+immediate-type          | X X X X X | I I I   I I   I I I | R R R |   ALU/load operations
+                        |                                         |
+                        | opcode    | immediate                   |
+full immediate-type     | X X X X X | I I I   I I   I I I   I I I |   Jump and link operations
+                        |                                         |
+                        | opcode    | shift       | src   | dest  |
+barrel-type             | X X X X X | Y I I   I I | R R R | R R R |   Barrel shifter operations
+                        |                                         |
+                        | opcode    | offset      | addr. | reg   |
+memory static-type      | X X X X X | I I I   I I | R R R | R R R |   Memory move operations
+                        |                                         |
+                        | opcode    | id    | fn  | id    | reg   |
+id-type                 | X X X X X | I I I | Y Y | I I I | R R R |   System calls/CSR operations
+```
+
+Notation legend:
+
+* `X`: 5 bit operation code
+* `Y`: subfunction of opcode
+* `I`: immediate value (optionally sign extended, depending on opcode)
+* `R`: source, destination, writeback location, subfunction, or condition code, depending on opcode
+
+These six total instruction encodings provide the baseline for the decode stage of the QCPU 2
+microprocessor. It is implemented as such that register source operands have a fixed location in the
+instruction encoding. Contrarily, the destination operand is either located in bits 10...8 or 2...0.
+A condition code is always located in bits 2...0.
+
+Instructions can be classified as working with `word` (16 bit) registers rather than `byte` (8 bit)
+registers. For example, memory move operations can be done with `move` (lower register byte) or with
+`movew` (full register word). With immediate operands, these word-based instructions align the
+immediate by 2. As such, the byte reach of the immediate is doubled. For example, `move`'s 5 bit
+signed immediate is ranged -16...15 bytes, whilst `movew`'s 5 bit signed immediate is ranged
+-32...31 bytes, but aligned by 2. In a special case, immediate operations with the destination of
+the instruction pointer or return pointer also provide this aligned-by-2 functionality.
 
 ## Assembly language
 

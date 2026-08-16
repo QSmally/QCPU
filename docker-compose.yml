@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        TAG: "v1.3.450"
+        TAG: "v1.10.18"
     container_name: qcpu-qsmally-org
     image: qcpu-qsmally-org
     volumes:
@@ -20,8 +20,6 @@ services:
     networks:
       - default
       - qcpu-network-bridge
-    ports:
-      - 80:80
 
 networks:
   qcpu-network-bridge:
