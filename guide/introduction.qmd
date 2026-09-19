@@ -27,13 +27,13 @@ arithmetic operations.
 |       Purpose       |   |       Purpose       |
 |                     |   |                     |
 | r0  zero            |   | r8  zero            |
-| r1  d1              |   | r9  instruction ptr |
-| r2  d2              |   | r10 return ptr      |
-| r3  d3              |   | r11 stack ptr       |
-| r4  d4              |   | r12 frame ptr       |
-| r5  d5              |   | r13 a1              |
-| r6  d6              |   | r14 a2              |
-| r7  d7              |   | a15 a3              |
+| r1  return ptr      |   | r9  instruction ptr |
+| r2  d1              |   | r10 stack ptr       |
+| r3  d2              |   | r11 frame ptr       |
+| r4  d3              |   | r12 a1              |
+| r5  d4              |   | r13 a2              |
+| r6  d5              |   | r14 a3              |
+| r7  d6              |   | a15 a4              |
 |                     |   |                     |
 +---------------------+   +---------------------+
 

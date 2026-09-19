@@ -45,8 +45,8 @@ subtitle: "QCPU 2 5-3-2-3-3 reference"
 | `10110-III II III III` | **jmprl** imm           | Jump relative and link                          | `rp = ip + 2; ip += imm`              | +-4096 byte reach, 2 byte aligned                     |
 | `10111-III II III-CCC` | **brh** cc, imm         | Branch                                          | `ip += imm` on condition              | +-256 byte reach, 2 byte aligned                      |
 | `11000-III II III-CCC` | **brhl** cc, imm        | Branch and link                                 | `rp = ip + 2; ip += imm` on condition | +-256 byte reach, 2 byte aligned                      |
-| `11001-III II-SSS-WWW` | **xch** dw, as1, imm    | Atomic exchange with static offset              | `dw xch *(as1 + imm)` sign ext. dw    | dw = zr is atomic clear; range imm +-16 bytes; cut8   |
-| `11010-III II-SSS-WWW` | **xchw** dw, as1, imm   | Atomic exchange word with static offset         | `dw xch *(as1 + imm)`                 | dw = zr is atomic clear; range imm +-32 bytes         |
+| `11001-III II-SSS-WWW` | **xch** dw, imm(as1)    | Atomic exchange with static offset              | `dw xch *(as1 + imm)` sign ext. dw    | dw = zr is atomic clear; range imm +-16 bytes; cut8   |
+| `11010-III II-SSS-WWW` | **xchw** dw, imm(as1)   | Atomic exchange word with static offset         | `dw xch *(as1 + imm)`                 | dw = zr is atomic clear; range imm +-32 bytes         |
 | `11011-III II-SSS-DDD` | **move** dd, imm(as1)   | Memory load with static offset                  | `dd = *(as1 + imm)` sign ext. dd      | dd = zr is prefetch; range imm +-16 bytes             |
 | `11100-III II-SSS-DDD` | **movew** dd, imm(as1)  | Memory load word with static offset             | `dd = *(as1 + imm)`                   | dd = zr is prefetch; range imm +-32 bytes             |
 | `11101-III II-SSS-SSS` | **move** imm(as1), ds2  | Memory store with static offset                 | `*(as1 + imm) = ds2`                  | ds2 = zr is clear; range imm +-16 bytes; cut8         |
@@ -67,21 +67,21 @@ subtitle: "QCPU 2 5-3-2-3-3 reference"
 | `11111-III-01-III-101` |                         |                                                 |                                       |                                                       |
 | `11111-III-01-III-110` |                         |                                                 |                                       |                                                       |
 | `11111-III-01-III-111` |                         |                                                 |                                       |                                                       |
-| `11111-III-10-III-SSS` | **csrw** ds1, uimm      | *** Control & Status Register write             | `csr(uimm) = ds1)`                    |                                                       |
-| `11111-III-11-III-DDD` | **csrr** dd, uimm       | *** Control & Status Register read              | `dd = csr(uimm)`                      |                                                       |
-| `11111-000-11-000-000` | **nop**                 | No operation                                    | literally nothing                     | CSR read dest zr are zero-operand instructions        |
-| `11111-000-11-001-000` | **shf**                 | Set half carry flag                             | `h = 1`                               |                                                       |
-| `11111-000-11-010-000` | **rhf**                 | Reset half carry flag                           | `h = 0`                               |                                                       |
-| `11111-000-11-011-000` | **ssf**                 | Set sign flag                                   | `s = 1`                               |                                                       |
-| `11111-000-11-100-000` | **rsf**                 | Reset sign flag                                 | `s = 0`                               |                                                       |
+| `11111-III-10-III-SSS` | **csrw** ds1, uimm      | *** Control & Status Register write             | `csr(uimm) = ds1`                     |                                                       |
+| `11111-III-11-III-DDD` | **csrr** dd, uimm       | *** Control & Status Register read              | `dd = csr(uimm)`                      | CSR read dest zr are zero-operand instructions        |
+| `11111-000-11-000-000` | **reti**                | *** Return from interrupt                       | `ip = csr(irp)`                       |                                                       |
+| `11111-000-11-001-000` | **waiti**               | *** Wait for interrupt                          |                                       |                                                       |
+| `11111-000-11-010-000` | **ftlb**                | *** Flush TLB                                   |                                       |                                                       |
+| `11111-000-11-011-000` | **fence**               | *** Fence                                       |                                       | flush pending store operations                        |
+| `11111-000-11-100-000` |                         |                                                 |                                       |                                                       |
 | `11111-000-11-101-000` |                         |                                                 |                                       |                                                       |
 | `11111-000-11-110-000` |                         |                                                 |                                       |                                                       |
 | `11111-000-11-111-000` |                         |                                                 |                                       |                                                       |
-| `11111-001-11-000-000` | **reti**                | *** Return from interrupt                       | `ip = csr(irp)`                       |                                                       |
-| `11111-001-11-001-000` | **waiti**               | *** Wait for interrupt                          |                                       |                                                       |
-| `11111-001-11-010-000` | **ftlb**                | *** Flush TLB                                   |                                       |                                                       |
-| `11111-001-11-011-000` | **fence**               | *** Fence                                       |                                       | flush pending store operations                        |
-| `11111-001-11-100-000` |                         |                                                 |                                       |                                                       |
+| `11111-001-11-000-000` | **nop**                 | No operation                                    | literally nothing                     |                                                       |
+| `11111-001-11-001-000` | **shf**                 | Set half carry flag                             | `h = 1`                               |                                                       |
+| `11111-001-11-010-000` | **rhf**                 | Reset half carry flag                           | `h = 0`                               |                                                       |
+| `11111-001-11-011-000` | **ssf**                 | Set sign flag                                   | `s = 1`                               |                                                       |
+| `11111-001-11-100-000` | **rsf**                 | Reset sign flag                                 | `s = 0`                               |                                                       |
 | `11111-001-11-101-000` |                         |                                                 |                                       |                                                       |
 | `11111-001-11-110-000` |                         |                                                 |                                       |                                                       |
 | `11111-001-11-111-000` |                         |                                                 |                                       |                                                       |
@@ -209,11 +209,15 @@ these DRs. Transfers are executed asynchronously with internal scoreboarding.
 In contrast, Address Registers (ARs) are used for bus addresses, pointers, and length types. These
 registers are used with memory move operations. Data can be exchanged between DRs and ARs through
 one of the `move` pseudoinstructions (translated to `add` with zero between DRs and ARs). There are
-special purpose registers mapped as ARs, such as the instruction pointer (write to jump) and return
-pointer (destination for link instructions). ARs have reserved registers such as the stack pointer
-which can be used in memory move operations. Overflows on ARs can emit hardware exceptions to the
-microprocessor. In a special case, the stack pointer register can emit a hardware exception if low
-or high limits are exceeded, which are configured in CSRs.
+special purpose registers mapped as ARs, such as the instruction pointer (write to jump) and stack
+pointer (Address Register with special bound checks). ARs have reserved registers such as the frame
+pointer which can be used in memory move operations. Overflows on ARs can emit hardware exceptions
+to the microprocessor. In a special case, the stack pointer register can emit a hardware exception
+if low or high limits are exceeded, which are configured in CSRs.
+
+The return pointer (generated from link instructions), although an address, is a Data Register; this
+design is due to the fact that the return pointer is not used as a memory address, and is likely to
+be stored to memory.
 
 Lastly, CSRs are used for system-mapped registers, such as for system information, the flag
 register, interrupt control, and virtual memory control. CSRs can be read from and written to with
@@ -222,21 +226,21 @@ DRs in kernel mode.
 | Domain              | Register | Identifier               | Size      |
 |---------------------+----------+--------------------------+-----------|
 | Data Register       | `r0`     | **zr** (zero)            | 16 bits   |
-| Data Register/Async | `r1`     | **d1**                   | 16 bits   |
-| Data Register/Async | `r2`     | **d2**                   | 16 bits   |
-| Data Register/Async | `r3`     | **d3**                   | 16 bits   |
-| Data Register/Async | `r4`     | **d4**                   | 16 bits   |
-| Data Register/Async | `r5`     | **d5**                   | 16 bits   |
-| Data Register/Async | `r6`     | **d6**                   | 16 bits   |
-| Data Register/Async | `r7`     | **d7**                   | 16 bits   |
+| Data Register/Async | `r1`     | **rp** (return ptr)      | 16 bits * |
+| Data Register/Async | `r2`     | **d1**                   | 16 bits   |
+| Data Register/Async | `r3`     | **d2**                   | 16 bits   |
+| Data Register/Async | `r4`     | **d3**                   | 16 bits   |
+| Data Register/Async | `r5`     | **d4**                   | 16 bits   |
+| Data Register/Async | `r6`     | **d5**                   | 16 bits   |
+| Data Register/Async | `r7`     | **d6**                   | 16 bits   |
 | Address Register    | `r8`     | **zr** (zero)            | 16 bits   |
 | Address Register    | `r9`     | **ip** (instruction ptr) | 16 bits * |
-| Address Register    | `r10`    | **rp** (return ptr)      | 16 bits * |
-| Address Register    | `r11`    | **sp** (stack ptr)       | 16 bits   |
-| Address Register    | `r12`    | **fp** (frame ptr)       | 16 bits   |
-| Address Register    | `r13`    | **a1**                   | 16 bits   |
-| Address Register    | `r14`    | **a2**                   | 16 bits   |
-| Address Register    | `r15`    | **a3**                   | 16 bits   |
+| Address Register    | `r10`    | **sp** (stack ptr)       | 16 bits   |
+| Address Register    | `r11`    | **fp** (frame ptr)       | 16 bits   |
+| Address Register    | `r12`    | **a1**                   | 16 bits   |
+| Address Register    | `r13`    | **a2**                   | 16 bits   |
+| Address Register    | `r14`    | **a3**                   | 16 bits   |
+| Address Register    | `r15`    | **a4**                   | 16 bits   |
 : {tbl-colwidths=[25,10,50,15]}
 
 \* Aligned by 2.
@@ -274,7 +278,8 @@ caller.
 
 Arithmetic and logical instructions writing to `zr` (zero) are considered flags-only operations.
 However, instruction `add zr, zr, zr` is a hard-wired `bkpt` (breakpoint) instruction. Moves between
-registers are translated to `add` instructions, and therefore update the appropriate flags.
+registers are translated to `add` instructions with a zero operand, which in a special case does not
+update flags. The `test` pseudoinstruction is therefore executed with `sub`.
 
 Subroutines may use the half-carry flag as error bit, or any function as defined in the subroutine
 contract, through the use of the `shf` (set half flag) and `rhf` (reset half flag) instructions.
